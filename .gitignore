@@ -2,8 +2,6 @@
 node_modules/
 
 # Build directories
-client/build/
-server/build/
 dist/
 
 # Logs and debug files
