@@ -1,0 +1,61 @@
+/* Existing styles (unchanged) */
+.MuiToolbar-root {
+  min-height: 64px;
+}
+
+@media (max-width: 768px) {
+  .MuiToolbar-root {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .MuiTypography-h6 {
+    font-size: 1.25rem;
+  }
+
+  .MuiIconButton-root {
+    padding: 8px;
+  }
+
+  .MuiIconButton-root svg {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .MuiTypography-h6 {
+    font-size: 1rem;
+  }
+
+  .MuiIconButton-root {
+    padding: 6px;
+  }
+
+  .MuiIconButton-root svg {
+    font-size: 1.25rem;
+  }
+}
+
+/* Updated styles for the logo */
+.logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  background-color: #161616; /* Match the navbar background color */
+}
+
+@media (max-width: 768px) {
+  .logo {
+    height: 28px;
+    width: 28px;
+    background-color: #161616; /* Ensure consistency across screen sizes */
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    height: 24px;
+    width: 24px;
+    background-color: #161616; /* Ensure consistency on mobile */
+  }
+}

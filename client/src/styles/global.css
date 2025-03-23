@@ -1,0 +1,44 @@
+/* Define custom color variables */
+:root {
+  --dark-bg: #1a1a1a;
+  --card-bg: #2a2a2a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --button-bg: #ff5555;
+  --button-hover-bg: #ff7777;
+  --javascript-color: #f1c40f;
+}
+
+/* Custom classes to apply the colors */
+.dark-bg {
+  background-color: var(--dark-bg);
+}
+
+.card-bg {
+  background-color: var(--card-bg);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Override Tailwind's default styles for specific elements if needed */
+.bg-darkBg {
+  background-color: var(--dark-bg) !important;
+}
+
+.bg-cardBg {
+  background-color: var(--card-bg) !important;
+}
+
+.text-textPrimary {
+  color: var(--text-primary) !important;
+}
+
+.text-textSecondary {
+  color: var(--text-secondary) !important;
+}
