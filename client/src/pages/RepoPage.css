@@ -1,0 +1,134 @@
+/* RepoPage.css */
+
+.repo-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #1c1c1c;
+    color: #fff;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Header with brand + nav */
+  .repo-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #333;
+  }
+  
+  .repo-page-header .brand h2 {
+    margin: 0;
+    font-weight: 500;
+  }
+  
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #bbb;
+    font-weight: 400;
+    padding-bottom: 2px;
+    transition: color 0.2s ease;
+  }
+  
+  .nav-links a:hover {
+    color: #fff;
+  }
+  
+  .nav-links a.active {
+    color: #fff;
+    border-bottom: 2px solid #61dafb;
+  }
+  
+  /* Main content */
+  .repo-page-content {
+    flex: 1;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  /* Stats grid (top row of cards) */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    background-color: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .stat-card:hover {
+    background-color: #343434;
+  }
+  
+  .stat-card h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .stat-card p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #bbb;
+  }
+  
+  .stat-card .change {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  
+  /* Charts section (bottom) */
+  .charts-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  @media (min-width: 992px) {
+    .charts-section {
+      flex-direction: row;
+    }
+  }
+  
+  .chart-card {
+    flex: 1;
+    background-color: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 1rem;
+    transition: background-color 0.2s ease;
+  }
+  
+  .chart-card:hover {
+    background-color: #343434;
+  }
+  
+  .chart-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+    color: #ddd;
+  }
+  
+  /* Chart.js canvas adjustments */
+  .chart-card canvas {
+    max-height: 300px;
+  }
+  
