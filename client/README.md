@@ -1,70 +1,109 @@
-# Getting Started with Create React App
+# Mendel WebApp
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a React-based web application built using Vite. It leverages modern UI libraries such as Material UI, Tailwind CSS, and React Router for seamless navigation.
 
-## Available Scripts
+## Tech Stack
 
-In the project directory, you can run:
+- **React** (v19.0.0)
+- **Vite** (v6.2.0)
+- **Material UI** (v6.4.8)
+- **Tailwind CSS** (v4.0.15)
+- **React Router DOM** (v7.4.0)
+- **Axios** (v1.8.4)
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Prerequisites
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Ensure you have the following installed:
 
-### `npm test`
+- Node.js (Latest LTS recommended)
+- npm or yarn
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Installation
 
-### `npm run build`
+1. Clone the repository:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+   ```sh
+   git clone https://github.com/arman-dogru/mendel-webapp.git
+   cd mendel-webapp/client
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Running the Development Server
 
-### `npm run eject`
+To start the development server, run:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```sh
+npm run dev
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+This will start the Vite development server, and the application will be available at `http://localhost:5173` (default port).
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Building the Project
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+To create a production build, run:
 
-## Learn More
+```sh
+npm run build
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Linting
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+To check for linting errors, run:
 
-### Code Splitting
+```sh
+npm run lint
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Previewing the Build
 
-### Analyzing the Bundle Size
+To preview the production build locally:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```sh
+npm run preview
+```
 
-### Making a Progressive Web App
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```
+client/
+│-- node_modules/
+│-- public/
+│-- src/
+│   ├── components/   # Reusable UI components
+│   ├── pages/        # Page components
+│   ├── hooks/        # Custom hooks
+│   ├── styles/       # Tailwind and global styles
+│   ├── App.jsx       # Main app component
+│   ├── main.jsx      # Entry point
+│-- .env              # Environment variables
+│-- package.json
+│-- vite.config.js    # Vite configuration
+│-- README.md
+```
 
-### Advanced Configuration
+## Environment Variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Create a `.env` file in the root directory and add the necessary environment variables.
+Example:
 
-### Deployment
+```sh
+VITE_API_BASE_URL=http://localhost:5000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Contributing
 
-### `npm run build` fails to minify
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).
+
+---
+
+Happy coding! 🚀

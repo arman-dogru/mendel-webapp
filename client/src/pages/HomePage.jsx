@@ -17,21 +17,15 @@ function HomePage() {
   useEffect(() => {
     const checkAuthAndFetchRepos = async () => {
       try {
-        // Step 1: Check if the user is authenticated by calling the backend
         const authenticated = await checkAuthStatus();
 
         if (!authenticated) {
-          // If not authenticated, redirect to the login page
           navigate("/");
           return;
         }
-
-        // Step 2: User is authenticated, set state and fetch repositories
         setIsAuthenticated(true);
 
-        // Step 3: Fetch repositories from the backend
         const data = await getUserRepos();
-        console.log("repos data ", data);
         setRepos(data);
         setFilteredRepos(data);
         setLoading(false);
@@ -51,7 +45,6 @@ function HomePage() {
     setFilteredRepos(filtered);
   }, [searchQuery, repos]);
 
-  // Show a loading state while checking authentication
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-darkBg flex justify-center items-center">
@@ -71,7 +64,7 @@ function HomePage() {
           variant="outlined"
           size="small"
           sx={{
-            backgroundColor: "#2a2a2a", // Match card background
+            backgroundColor: "#2a2a2a",
             borderRadius: "8px",
             width: "100%",
             maxWidth: "400px",
