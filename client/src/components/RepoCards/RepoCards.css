@@ -1,0 +1,14 @@
+/* Ensure cards are readable on very small screens */
+@media (max-width: 400px) {
+  .MuiButton-root {
+    font-size: 0.65rem !important;
+    padding: 3px 6px !important;
+  }
+}
+
+@media (max-width: 300px) {
+  .MuiButton-root {
+    font-size: 0.6rem !important;
+    padding: 2px 4px !important;
+  }
+}
