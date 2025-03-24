@@ -3,6 +3,7 @@ const {
   GITHUB_CLIENT_ID,
   CALLBACK_URL,
   GITHUB_CLIENT_SECRET,
+  FRONTEND_URL,
 } = require("../config/env");
 const { AppError } = require("../utils/errorHandler");
 
@@ -35,8 +36,8 @@ const handleGitHubCallback = async (req, res, next) => {
     if (!accessToken) {
       throw new AppError("Access token not found", 401);
     }
-
-    res.redirect(`/api/auth/repos?token=${accessToken}`);
+    req.session.accessToken = accessToken;
+    res.redirect(`${FRONTEND_URL}/homepage`);
   } catch (error) {
     console.error("Error in callback:", error.message);
     next(error);
@@ -68,26 +69,27 @@ const getUserData = async (req, res, next) => {
 };
 
 const getUserRepos = async (req, res, next) => {
-  const { token } = req.query || {};
-  if (!token) {
+  const accessToken = req.session.accessToken;
+  if (!accessToken) {
     return next(new AppError("Token not Found", 400));
   }
   try {
     const response = await axios.get(`https://api.github.com/user/repos`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${accessToken}`,
         Accept: "application/json",
-      },
-      params: {
-        per_page: 100,
-        page: 1,
       },
     });
     res.json(response.data);
   } catch (error) {
-    console.error("repository error ", error.message);
+    console.error("Repository error:", error.message);
     next(error);
   }
+};
+
+const checkAuthStatus = (req, res) => {
+  const isAuthenticated = !!req.session.accessToken;
+  res.json({ isAuthenticated });
 };
 
 module.exports = {
@@ -95,4 +97,5 @@ module.exports = {
   handleGitHubCallback,
   getUserData,
   getUserRepos,
+  checkAuthStatus,
 };
