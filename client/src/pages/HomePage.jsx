@@ -4,6 +4,7 @@ import { TextField, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RepoCards from "../components/RepoCards/RepoCards";
 import { getUserRepos, checkAuthStatus } from "../utils/api";
+import HomePageNavbar from "../components/HomePageNavbar/HomePageNavbar";
 
 function HomePage() {
   const [repos, setRepos] = useState([]);
@@ -54,52 +55,57 @@ function HomePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 sm:p-4 bg-darkBg text-textPrimary">
-      <h2 className="text-2xl sm:text-xl font-bold mb-4">Your Repositories</h2>
-      <div className="mb-6">
-        <TextField
-          placeholder="Search repositories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          variant="outlined"
-          size="small"
-          sx={{
-            backgroundColor: "#2a2a2a",
-            borderRadius: "8px",
-            width: "100%",
-            maxWidth: "400px",
-            "& .MuiOutlinedInput-root": {
-              color: "#e0e0e0",
-              "& fieldset": { borderColor: "#4a4a4a" },
-              "&:hover fieldset": { borderColor: "#6a6a6a" },
-              "&.Mui-focused fieldset": { borderColor: "#ff5555" },
-            },
-            "& .MuiInputBase-input::placeholder": {
-              color: "#a0a0a0",
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: "#a0a0a0" }} />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </div>
-      {loading && (
-        <div className="text-center text-textSecondary">Loading...</div>
-      )}
-      {error && <div className="text-center text-red-500">{error}</div>}
-      {!loading && !error && filteredRepos.length > 0 && (
-        <RepoCards repos={filteredRepos} />
-      )}
-      {!loading && !error && filteredRepos.length === 0 && (
-        <div className="text-center text-textSecondary">
-          No repositories found.
+    <>
+      <HomePageNavbar />
+      <div className="max-w-7xl mx-auto p-6 sm:p-4 bg-darkBg text-textPrimary">
+        <h2 className="text-2xl sm:text-xl font-bold mb-4">
+          Your Repositories
+        </h2>
+        <div className="mb-6">
+          <TextField
+            placeholder="Search repositories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{
+              backgroundColor: "#2a2a2a",
+              borderRadius: "8px",
+              width: "100%",
+              maxWidth: "400px",
+              "& .MuiOutlinedInput-root": {
+                color: "#e0e0e0",
+                "& fieldset": { borderColor: "#4a4a4a" },
+                "&:hover fieldset": { borderColor: "#6a6a6a" },
+                "&.Mui-focused fieldset": { borderColor: "#ff5555" },
+              },
+              "& .MuiInputBase-input::placeholder": {
+                color: "#a0a0a0",
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: "#a0a0a0" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
         </div>
-      )}
-    </div>
+        {loading && (
+          <div className="text-center text-textSecondary">Loading...</div>
+        )}
+        {error && <div className="text-center text-red-500">{error}</div>}
+        {!loading && !error && filteredRepos.length > 0 && (
+          <RepoCards repos={filteredRepos} />
+        )}
+        {!loading && !error && filteredRepos.length === 0 && (
+          <div className="text-center text-textSecondary">
+            No repositories found.
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

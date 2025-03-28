@@ -3,8 +3,11 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import ForkRightIcon from "@mui/icons-material/ForkRight";
 import "./RepoCards.css";
+import { useNavigate } from "react-router-dom";
 
 function RepoCards({ repos }) {
+  const navigate = useNavigate();
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -12,6 +15,10 @@ function RepoCards({ repos }) {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const handleRepositoryNavigation = (repo) => {
+    navigate("/dashboard", { state: { repo: repo.full_name } });
   };
 
   return (
@@ -72,6 +79,7 @@ function RepoCards({ repos }) {
           <Button
             variant="contained"
             size="small"
+            onClick={() => handleRepositoryNavigation(repo)}
             sx={{
               backgroundColor: "var(--button-bg)",
               color: "var(--text-primary)",

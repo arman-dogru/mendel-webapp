@@ -1,9 +1,32 @@
-import { AppBar, Toolbar, Typography, IconButton } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Box,
+} from "@mui/material";
 import { IoNotificationsOutline, IoSettingsOutline } from "react-icons/io5";
 import { FaUserCircle } from "react-icons/fa";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./Navbar.css";
 
-function Navbar() {
+function Navbar({ setActiveTab, activeTab }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const navLinks = [
+    { label: "Dashboards", path: "/dashboard", tab: "Dashboards" }, // Add tab for Dashboards
+    { label: "Branches", path: "/dashboard", tab: "Branches" },
+    { label: "PR's", path: "/dashboard", tab: "PRs" },
+    { label: "Issues", path: "/dashboard", tab: "Issues" },
+  ];
+
+  const handleNavigation = (path, tab) => {
+    navigate(path);
+    setActiveTab(tab); // Always set the tab
+  };
+
   return (
     <AppBar
       position="static"
@@ -13,33 +36,51 @@ function Navbar() {
       }}
     >
       <Toolbar className="flex justify-between px-4">
-        {/* Left Section: Logo and Text */}
-        <div className="flex items-center space-x-2">
-          <img
-            src="/MENDEL_LAB_LOGO.jpg"
-            alt="Mendel Lab Logo"
-            className="logo"
-          />
-          <Typography
-            variant="h6"
-            className="text-white font-semibold tracking-wide"
-          >
-            MENDEL
-          </Typography>
-        </div>
+        {/* Left Section: Logo, Title, and Navigation Links */}
+        <Box className="flex items-center">
+          <Box className="flex items-center space-x-2">
+            <img
+              src="/MENDEL_LAB_LOGO.jpg"
+              alt="Mendel Lab Logo"
+              className="logo"
+            />
+            <Typography
+              variant="h6"
+              className="text-white font-semibold tracking-wide"
+            >
+              MENDEL
+            </Typography>
+          </Box>
+          <Box className="flex items-center space-x-2 ml-4">
+            {navLinks.map((link) => (
+              <Button
+                key={link.label}
+                onClick={() => handleNavigation(link.path, link.tab)}
+                sx={{
+                  color: activeTab === link.tab ? "#EF4444" : "#9CA3AF", // Use activeTab only
+                  fontWeight: "medium",
+                  textTransform: "none",
+                  "&:hover": { color: "#FFFFFF" },
+                }}
+              >
+                {link.label}
+              </Button>
+            ))}
+          </Box>
+        </Box>
 
         {/* Right Section: Icons */}
-        <div className="flex items-center space-x-3">
-          <IconButton>
-            <IoNotificationsOutline className="text-gray-400 hover:text-white text-2xl transition-colors duration-200" />
+        <Box className="flex items-center space-x-1">
+          <IconButton aria-label="Notifications">
+            <IoNotificationsOutline className="text-gray-400 hover:text-white transition-colors duration-200" />
           </IconButton>
-          <IconButton>
-            <IoSettingsOutline className="text-gray-400 hover:text-white text-2xl transition-colors duration-200" />
+          <IconButton aria-label="Settings">
+            <IoSettingsOutline className="text-gray-400 hover:text-white transition-colors duration-200" />
           </IconButton>
-          <IconButton>
-            <FaUserCircle className="text-gray-400 hover:text-white text-2xl transition-colors duration-200" />
+          <IconButton aria-label="User profile">
+            <FaUserCircle className="text-gray-400 hover:text-white transition-colors duration-200" />
           </IconButton>
-        </div>
+        </Box>
       </Toolbar>
     </AppBar>
   );
