@@ -1,503 +1,427 @@
-import React, { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useEffect, useState, useRef, useCallback } from "react";
 import * as d3 from "d3";
-import { dagStratify, sugiyama } from "d3-dag";
+import "./GitTreeComponent.css";
 import {
-  Box,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  CircularProgress,
-} from "@mui/material";
-import { styled } from "@mui/material/styles";
-import MergeIcon from "@mui/icons-material/Merge";
-import CommitIcon from "@mui/icons-material/Commit";
-import { getGitTree } from "../../utils/api";
-
-const branchColors = [
-  "#FF5555",
-  "#55AAFF",
-  "#55FF55",
-  "#AA55FF",
-  "#FFAA00",
-  "#FF6B6B",
-  "#4ECDC4",
-  "#45B7D1",
-  "#96CEB4",
-  "#FFEEAD",
-];
-
-const generateRandomColor = () => {
-  const letters = "0123456789ABCDEF";
-  let color = "#";
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-};
-
-const TreeContainer = styled(Box)({
-  border: "1px solid #333",
-  borderRadius: "4px",
-  backgroundColor: "#1F1F1F",
-  padding: "16px",
-  display: "flex",
-  flexDirection: "column",
-});
-
-const CommitListContainer = styled(Box)({
-  border: "1px solid #333",
-  borderRadius: "4px",
-  backgroundColor: "#1F1F1F",
-  padding: "16px",
-  display: "flex",
-  flexDirection: "column",
-});
-
-const LoadingContainer = styled(Box)({
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  height: "100%",
-  flexDirection: "column",
-  gap: "16px",
-});
+  getRepoBranches,
+  getRepoCommits,
+  getRepoMerges,
+} from "../../utils/api";
 
 const GitTreeComponent = ({ repo }) => {
-  const [branches, setBranches] = useState([]);
   const [commits, setCommits] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [merges, setMerges] = useState([]);
+  const [filteredBranches, setFilteredBranches] = useState([]);
+  const [hoveredCommit, setHoveredCommit] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState("All branches");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedBranch, setSelectedBranch] = useState("all");
-  const [highlightedCommit, setHighlightedCommit] = useState(null);
-  const [treeHeight, setTreeHeight] = useState(0);
-  const svgRef = useRef(null);
-  const containerRef = useRef(null);
-  const [owner, repoName] = repo.split("/");
+  const svgRef = useRef();
+  const containerRef = useRef();
 
+  // Generate branch colors
+  const generateBranchColors = (branchList) => {
+    const colors = {};
+    const baseColors = [
+      "#2196f3",
+      "#e91e63",
+      "#4caf50",
+      "#ff9800",
+      "#9c27b0",
+      "#795548",
+      "#607d8b",
+      "#ff5722",
+      "#3f51b5",
+      "#009688",
+    ];
+    branchList.forEach((branch, index) => {
+      colors[branch.name] =
+        branch.name === "main"
+          ? baseColors[0]
+          : baseColors[(index % (baseColors.length - 1)) + 1];
+    });
+    return colors;
+  };
+
+  // Fetch repository data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
+        const [owner, repoName] = repo.split("/");
+        const branchesData = await getRepoBranches(owner, repoName);
+        setBranches(branchesData);
 
-        const response = await getGitTree(owner, repoName);
-        console.log("Git Tree API Response:", response);
-
-        const { branches: fetchedBranches, commits: fetchedCommits } = response;
-        const branchesWithColors = fetchedBranches.map((branch, index) => ({
-          ...branch,
-          color:
-            index < branchColors.length
-              ? branchColors[index]
-              : generateRandomColor(),
-        }));
-
-        setBranches(branchesWithColors);
-        setCommits(
-          fetchedCommits.sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-          )
+        const commitPromises = branchesData.map((branch) =>
+          getRepoCommits(owner, repoName, branch.name)
         );
+        const commitsDataArray = await Promise.all(commitPromises);
+        const uniqueCommits = Array.from(
+          new Map(commitsDataArray.flat().map((c) => [c.sha, c])).values()
+        );
+        setCommits(uniqueCommits);
 
-        if (fetchedCommits.length === 0) {
-          setError("No commits found for this repository.");
-        }
+        const mergesData = await getRepoMerges(owner, repoName);
+        setMerges(mergesData);
+        setFilteredBranches(branchesData.map((b) => b.name));
       } catch (err) {
-        if (err.response && err.response.status === 403) {
-          setError("API rate limit exceeded. Please try again later.");
-        } else if (err.response && err.response.status === 401) {
-          setError(
-            "Unauthorized. Please log in again to access this repository."
-          );
-        } else {
-          setError("Failed to fetch data for Git-Tree. Please try again.");
-        }
+        console.error("Error fetching data:", err);
+        setError("Failed to load repository data");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    if (repo) fetchData();
+  }, [repo]);
 
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [owner, repoName]);
+  const branchColors = generateBranchColors(branches);
+  const sortedCommits = [...commits].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
 
-  useEffect(() => {
-    if (loading || error || commits.length === 0) return;
-
-    const nodes = commits.map((commit) => ({
-      id: commit.id,
-      data: commit,
-    }));
-
-    const nodeIds = new Set(commits.map((commit) => commit.id));
-
-    let dag;
-    try {
-      dag = dagStratify()(
-        nodes.map((node) => ({
-          id: node.id,
-          parentIds: [node.data.parent, node.data.mergeParent].filter(
-            (parentId) => parentId && nodeIds.has(parentId)
-          ),
-        }))
-      );
-    } catch (err) {
-      setError(
-        "Failed to create Git-Tree visualization: Incomplete commit history."
-      );
-      return;
-    }
-
-    const containerWidth = containerRef.current
-      ? containerRef.current.getBoundingClientRect().width
-      : 300;
-    const containerHeight = containerRef.current
-      ? containerRef.current.getBoundingClientRect().height
-      : 300;
-
-    const width = 800;
-    const yStep = 60;
-    const height = commits.length * yStep + 100;
-
-    const layout = sugiyama()
-      .size([height, width])
-      .layering("longestPath")
-      .decross("opt")
-      .coord("greedy");
-
-    try {
-      layout(dag);
-    } catch (err) {
-      setError(
-        "Failed to layout Git-Tree visualization: Incomplete commit history."
-      );
-      return;
-    }
-
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
-    const scale = Math.min(
-      containerWidth / (width + 100),
-      containerHeight / (height + 100)
-    );
-    svg
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .attr("viewBox", `0 0 ${width + 100} ${height + 100}`)
-      .attr("preserveAspectRatio", "xMidYMid meet");
-
-    const g = svg
-      .append("g")
-      .attr("transform", `translate(50, 50) scale(${scale})`);
-
-    setTreeHeight(height * scale);
-
-    const branchLanes = {};
-    branches.forEach((branch, i) => {
-      branchLanes[branch.name] = i * 60;
-    });
-
-    const commitPositions = new Map();
-    dag.descendants().forEach((node, index) => {
-      const commit = node.data;
-      let lane;
-
-      if (selectedBranch === "all") {
-        lane = branchLanes[commit.branch] || 0;
-      } else {
-        lane =
-          commit.branch === selectedBranch
-            ? branchLanes[selectedBranch]
-            : branchLanes["main"] || 0;
-      }
-
-      const y = index * yStep + 50;
-      commitPositions.set(commit.id, { x: lane, y });
-      node.x = y;
-      node.y = lane;
-    });
-
-    g.selectAll(".branch-label")
-      .data(branches)
-      .enter()
-      .append("text")
-      .attr("class", "branch-label")
-      .attr("x", (d, i) => i * 60)
-      .attr("y", 20)
-      .text((d) => d.name)
-      .attr("font-size", "12px")
-      .attr("fill", (d) => d.color);
-
-    const highlightedCommits = new Set(
-      selectedBranch === "all"
-        ? commits.map((c) => c.id)
-        : commits.filter((c) => c.branch === selectedBranch).map((c) => c.id)
-    );
-
-    const line = d3
-      .line()
-      .curve(d3.curveMonotoneX)
-      .x((d) => d.y)
-      .y((d) => d.x);
-
-    g.selectAll(".link")
-      .data(dag.links())
-      .enter()
-      .append("path")
-      .attr("class", "link")
-      .attr("d", (d) => {
-        const sourcePos = commitPositions.get(d.source.id);
-        const targetPos = commitPositions.get(d.target.id);
-        if (!sourcePos || !targetPos) return "";
-        const points = [
-          { x: sourcePos.y, y: sourcePos.x },
-          { x: targetPos.y, y: targetPos.x },
-        ];
-        return line(points);
-      })
-      .attr("fill", "none")
-      .attr("stroke", (d) => {
-        return (
-          branches.find((b) => b.name === d.source.data.branch)?.color || "#555"
-        );
-      })
-      .attr("stroke-width", 2)
-      .attr("opacity", (d) => (highlightedCommits.has(d.target.id) ? 1 : 0.3));
-
-    const node = g
-      .selectAll(".node")
-      .data(dag.descendants())
-      .enter()
-      .append("g")
-      .attr("class", "node")
-      .attr("transform", (d) => `translate(${d.y},${d.x})`)
-      .on("mouseover", (event, d) => setHighlightedCommit(d.data.id))
-      .on("mouseout", () => setHighlightedCommit(null));
-
-    node
-      .append("circle")
-      .attr("r", 6)
-      .attr("fill", (d) => {
-        return branches.find((b) => b.name === d.data.branch)?.color || "#999";
-      })
-      .attr("stroke", (d) => (d.data.isMerge ? "#000" : "none"))
-      .attr("stroke-width", 2)
-      .attr("fill-opacity", (d) => (d.data.isMerge ? 0 : 1))
-      .attr("opacity", (d) => (highlightedCommits.has(d.data.id) ? 1 : 0.3));
-
-    node
-      .append("text")
-      .attr("dx", 12)
-      .attr("dy", 4)
-      .attr("fill", "#FFF")
-      .attr("font-size", "12px")
-      .attr("opacity", (d) => (highlightedCommits.has(d.data.id) ? 1 : 0.3))
-      .text((d) => d.data.message.substring(0, 20) + "...");
-  }, [commits, branches, loading, error, selectedBranch]);
+  const getBaseBranch = (branchName) => {
+    const merge = merges.find((m) => m.headBranch === branchName);
+    return merge ? merge.baseBranch : "main";
+  };
 
   const getFilteredCommits = () => {
-    if (selectedBranch === "all") {
-      return commits;
-    }
-
-    const branchCommits = commits.filter((c) => c.branch === selectedBranch);
-    const ancestors = new Set();
-    const visit = (commitId) => {
-      if (!commitId || ancestors.has(commitId)) return;
-      const commit = commits.find((c) => c.id === commitId);
-      if (!commit) return;
-      ancestors.add(commitId);
-      if (commit.parent) visit(commit.parent);
-      if (commit.mergeParent) visit(commit.mergeParent);
-    };
-
-    branchCommits.forEach((commit) => visit(commit.id));
-    return commits.filter((c) => ancestors.has(c.id));
+    if (selectedBranch === "All branches") return sortedCommits;
+    const baseBranch = getBaseBranch(selectedBranch);
+    return sortedCommits.filter(
+      (commit) =>
+        filteredBranches.includes(commit.branch) ||
+        (baseBranch && commit.branch === baseBranch)
+    );
   };
 
   const filteredCommits = getFilteredCommits();
 
-  const sidePanelItems = filteredCommits
-    .map((commit) => ({
-      key: `commit-${commit.id}`,
-      type: commit.isMerge ? "merge" : "commit",
-      sha: commit.id,
-      description:
-        commit.isMerge && commit.pr
-          ? `${commit.message} (${commit.pr})`
-          : commit.message,
-      date: new Date(commit.timestamp),
-      author: commit.author,
-    }))
-    .sort((a, b) => b.date - a.date);
+  const selectBranch = (event) => {
+    const branchName = event.target.value;
+    setSelectedBranch(branchName);
+    const baseBranch =
+      branchName !== "All branches" ? getBaseBranch(branchName) : null;
+    setFilteredBranches(
+      branchName === "All branches"
+        ? branches.map((b) => b.name)
+        : [branchName, ...(baseBranch ? [baseBranch] : [])]
+    );
+  };
+
+  const isMergeCommit = (commit) => commit.parents.length > 1;
+  const findPrForMerge = (commitSha) =>
+    merges.find((merge) => merge.mergeCommitSha === commitSha);
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
+  const truncateSha = (sha) => sha.substring(0, 7);
+  const truncateMessage = (message, maxLength = 15) =>
+    message.length > maxLength
+      ? `${message.substring(0, maxLength)}...`
+      : message;
+
+  const drawGitTree = useCallback(() => {
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = Math.max(
+      container.clientHeight,
+      filteredCommits.length * 60
+    );
+
+    svg.attr("width", width).attr("height", height);
+
+    if (!filteredCommits.length) {
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", 50)
+        .attr("text-anchor", "middle")
+        .attr("fill", "var(--text-primary)")
+        .text("No commits to display");
+      return;
+    }
+
+    const visibleBranches =
+      selectedBranch === "All branches"
+        ? branches
+        : branches
+            .filter((b) => filteredBranches.includes(b.name))
+            .sort((a, b) => {
+              if (a.name === "main") return -1;
+              if (b.name === "main") return 1;
+              if (a.name === selectedBranch) return -1;
+              if (b.name === selectedBranch) return 1;
+              return 0;
+            });
+
+    const margin = { top: 40, right: 20, bottom: 20, left: 20 };
+    const laneWidth = Math.max(
+      (width - margin.left - margin.right) /
+        Math.max(visibleBranches.length, 1),
+      60
+    );
+    const yStep = 60;
+    const fontSize = Math.max(12, Math.min(14, width / 80));
+    const circleRadius = Math.max(6, Math.min(10, width / 100));
+    const strokeWidth = Math.max(1, width / 400);
+
+    const g = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const branchLanes = {};
+    visibleBranches.forEach((branch, i) => {
+      branchLanes[branch.name] = i * laneWidth + laneWidth / 2;
+    });
+
+    const commitPositions = new Map();
+    const mergeCommits = new Map();
+
+    filteredCommits.forEach((commit, index) => {
+      const lane =
+        branchLanes[commit.branch] || branchLanes["main"] || laneWidth / 2;
+      commitPositions.set(commit.sha, {
+        x: lane,
+        y: index * yStep,
+        commit,
+      });
+
+      if (isMergeCommit(commit)) {
+        mergeCommits.set(commit.sha, {
+          commit,
+          parents: commit.parents.map((parentSha) => ({
+            sha: parentSha,
+            branch: filteredCommits.find((c) => c.sha === parentSha)?.branch,
+          })),
+        });
+      }
+    });
+
+    // Draw branch labels
+    g.selectAll(".branch-label")
+      .data(visibleBranches)
+      .enter()
+      .append("text")
+      .attr("x", (d) => branchLanes[d.name])
+      .attr("y", -10)
+      .attr("text-anchor", "middle")
+      .attr("fill", (d) => branchColors[d.name])
+      .style("font-size", `${fontSize}px`)
+      .style("font-weight", "bold")
+      .text((d) => d.name);
+
+    // Draw paths
+    g.selectAll(".link")
+      .data(filteredCommits.filter((c) => c.parents.length > 0))
+      .enter()
+      .append("path")
+      .attr("d", (d) => {
+        const targetPos = commitPositions.get(d.sha);
+        if (!targetPos) return "";
+        let path = "";
+        d.parents.forEach((parentSha) => {
+          const parentPos = commitPositions.get(parentSha);
+          if (parentPos) {
+            const parentBranch = filteredCommits.find(
+              (c) => c.sha === parentSha
+            )?.branch;
+            if (isMergeCommit(d) && parentBranch !== d.branch) {
+              path += `M${targetPos.x},${targetPos.y} V${
+                (targetPos.y + parentPos.y) / 2
+              } H${parentPos.x} V${parentPos.y}`;
+            } else {
+              path += `M${targetPos.x},${targetPos.y} V${parentPos.y}`;
+            }
+          }
+        });
+        return path;
+      })
+      .attr("fill", "none")
+      .attr("stroke", (d) => branchColors[d.branch] || "#555")
+      .attr("stroke-width", strokeWidth)
+      .attr("stroke-dasharray", (d) => (isMergeCommit(d) ? "5,5" : null));
+
+    // Draw nodes
+    const nodes = g
+      .selectAll(".node")
+      .data(filteredCommits)
+      .enter()
+      .append("g")
+      .attr(
+        "transform",
+        (d) =>
+          `translate(${commitPositions.get(d.sha).x},${
+            commitPositions.get(d.sha).y
+          })`
+      )
+      .on("mouseover", (_, d) => setHoveredCommit(d.sha))
+      .on("mouseout", () => setHoveredCommit(null));
+
+    nodes
+      .append("circle")
+      .attr("r", (d) =>
+        hoveredCommit === d.sha ? circleRadius * 1.4 : circleRadius
+      )
+      .attr("fill", (d) => (isMergeCommit(d) ? "none" : branchColors[d.branch]))
+      .attr("stroke", (d) => branchColors[d.branch])
+      .attr("stroke-width", strokeWidth);
+
+    nodes
+      .append("text")
+      .attr("dx", circleRadius * 2)
+      .attr("dy", ".35em")
+      .attr("fill", "var(--text-primary)")
+      .style("font-size", `${fontSize}px`)
+      .text((d) =>
+        isMergeCommit(d)
+          ? "Merge"
+          : truncateMessage(d.message, Math.floor(width / 40))
+      );
+  }, [
+    filteredCommits,
+    branches,
+    filteredBranches,
+    selectedBranch,
+    hoveredCommit,
+    branchColors,
+  ]);
+
+  // Handle resize and redraw
+  useEffect(() => {
+    if (!loading && commits.length) {
+      drawGitTree();
+      const handleResize = () => drawGitTree();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, [loading, commits, drawGitTree]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-darkBg text-textPrimary">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-400"></div>
+        <p className="mt-4">Loading repository data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-darkBg text-red-500">
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
-    <Box className="p-6 bg-[#161616] min-h-screen text-white w-full">
-      {error && (
-        <Typography className="text-red-500 mb-4">Error: {error}</Typography>
-      )}
-
-      <Box className="flex items-center gap-4 mb-6 flex-wrap">
-        <FormControl
-          sx={{
-            minWidth: 200,
-            backgroundColor: "#3B82F6",
-            borderRadius: "4px",
-            "&:hover": {
-              backgroundColor: "#2563EB",
-            },
-          }}
+    <div className="flex flex-col min-h-screen w-full bg-darkBg text-textPrimary font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-cardBg border-b border-gray-600 flex-wrap gap-4">
+        <select
+          value={selectedBranch}
+          onChange={selectBranch}
+          className="w-full sm:w-auto min-w-[200px] p-2 bg-gray-700 text-textPrimary rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <InputLabel sx={{ color: "white", fontSize: "14px" }}>
-            Filter by Branch
-          </InputLabel>
-          <Select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-            label="Filter by Branch"
-            sx={{
-              color: "white",
-              fontSize: "14px",
-              ".MuiSvgIcon-root": { color: "white" },
-              "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: "transparent",
-              },
-              "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: "transparent",
-              },
-            }}
-          >
-            <MenuItem value="all">All</MenuItem>
-            {branches.map((branch) => (
-              <MenuItem key={branch.name} value={branch.name}>
-                {branch.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Box className="flex gap-3 flex-wrap">
+          <option value="All branches">All Branches</option>
           {branches.map((branch) => (
-            <Typography
-              key={branch.name}
-              className="flex items-center text-sm text-white"
-            >
-              <span
-                className="inline-block w-4 h-4 rounded-full mr-2"
-                style={{ backgroundColor: branch.color }}
-              ></span>
+            <option key={branch.name} value={branch.name}>
               {branch.name}
-            </Typography>
+            </option>
           ))}
-        </Box>
-      </Box>
+        </select>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Legend:</span>
+          {filteredBranches.map((branch) => (
+            <div key={branch} className="flex items-center gap-1">
+              <span
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: branchColors[branch] }}
+              />
+              <span>{branch}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <Box
-        className="flex gap-6 w-full"
-        sx={{
-          flexDirection: { xs: "column", md: "row" },
-        }}
-      >
-        <TreeContainer
+      <div className="flex flex-col lg:flex-row flex-1 gap-4 p-4 overflow-hidden">
+        <div
           ref={containerRef}
-          sx={{
-            width: { xs: "100%", md: "50%" },
-            height: { xs: "400px", md: "600px" },
-          }}
+          className="w-full lg:w-1/2 h-[50vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col"
         >
-          <Typography variant="h6" className="mb-2 text-white">
-            Tree Visualization
-          </Typography>
-          {loading ? (
-            <LoadingContainer>
-              <CircularProgress
-                sx={{ color: "#A0A0A0" }}
-                size={40}
-                thickness={4}
-              />
-              <Typography className="text-[#9ca3af]">
-                Loading Git Tree...
-              </Typography>
-            </LoadingContainer>
-          ) : error ? (
-            <Typography className="text-red-500">
-              Unable to display Git Tree
-            </Typography>
-          ) : (
-            <Box sx={{ flex: 1 }}>
-              <svg
-                ref={svgRef}
-                className="w-full"
-                style={{ height: `${treeHeight}px` }}
-              ></svg>
-            </Box>
-          )}
-        </TreeContainer>
+          <h2 className="text-lg font-semibold mb-2">Tree Visualization</h2>
+          <div className="flex-1 overflow-auto">
+            <svg ref={svgRef} className="w-full min-h-full"></svg>
+          </div>
+        </div>
 
-        <CommitListContainer
-          sx={{
-            width: { xs: "100%", md: "50%" },
-            height: { xs: "400px", md: "600px" },
-          }}
-        >
-          <Typography variant="h6" className="mb-2 text-white">
-            Commit History
-          </Typography>
-          {loading ? (
-            <LoadingContainer>
-              <CircularProgress
-                sx={{ color: "#A0A0A0" }}
-                size={40}
-                thickness={4}
-              />
-              <Typography className="text-[#9ca3af]">
-                Loading Commit History...
-              </Typography>
-            </LoadingContainer>
-          ) : error ? (
-            <Typography className="text-red-500">
-              Unable to display Commit History
-            </Typography>
-          ) : (
-            <Box>
-              {sidePanelItems.length === 0 ? (
-                <Typography className="text-[#9ca3af]">
-                  No commits to display.
-                </Typography>
-              ) : (
-                sidePanelItems.map((item) => (
-                  <Box
-                    key={item.key}
-                    className={`flex items-center gap-4 py-2 border-b border-gray-700 last:border-none ${
-                      highlightedCommit === item.sha ? "bg-gray-800" : ""
-                    }`}
-                  >
-                    {item.type === "merge" ? (
-                      <MergeIcon className="text-purple-500" />
-                    ) : (
-                      <CommitIcon className="text-blue-500" />
+        <div className="w-full lg:w-1/2 h-[50vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col overflow-hidden">
+          <h2 className="text-lg font-semibold mb-2">Commit History</h2>
+          <div className="flex p-2 bg-gray-700 border-b border-gray-600 font-medium text-sm">
+            <span className="flex-1 min-w-0 px-2">Description</span>
+            <span className="hidden sm:block flex-[0.5] min-w-[80px] px-2">
+              Date
+            </span>
+            <span className="hidden md:block flex-[0.5] min-w-[80px] px-2">
+              Author
+            </span>
+            <span className="flex-[0.5] min-w-[60px] px-2">Commit</span>
+          </div>
+          <div className="flex-1 overflow-auto">
+            {filteredCommits.map((commit) => {
+              const pr = isMergeCommit(commit)
+                ? findPrForMerge(commit.sha)
+                : null;
+              return (
+                <div
+                  key={commit.sha}
+                  className={`flex p-2 border-b border-gray-600 hover:bg-gray-600 text-sm ${
+                    hoveredCommit === commit.sha ? "bg-gray-600" : ""
+                  }`}
+                  onMouseEnter={() => setHoveredCommit(commit.sha)}
+                  onMouseLeave={() => setHoveredCommit(null)}
+                >
+                  <div className="flex-1 min-w-0 px-2 flex items-center gap-2">
+                    <span
+                      className={`w-3 h-3 flex-shrink-0 rounded-full ${
+                        isMergeCommit(commit) ? "border-2" : ""
+                      }`}
+                      style={{
+                        backgroundColor: isMergeCommit(commit)
+                          ? "transparent"
+                          : branchColors[commit.branch],
+                        borderColor: branchColors[commit.branch],
+                      }}
+                    />
+                    <span className="truncate">
+                      {pr ? `${pr.title} (PR #${pr.prNumber})` : commit.message}
+                    </span>
+                    {isMergeCommit(commit) && (
+                      <span className="ml-1 px-1 py-0.5 bg-gray-600 rounded text-xs">
+                        Merge
+                      </span>
                     )}
-                    <Box className="flex-1">
-                      <Typography className="text-sm text-white">
-                        {item.description}
-                      </Typography>
-                      <Typography className="text-xs text-gray-500">
-                        {item.sha.substring(0, 7)} - {item.author} -{" "}
-                        {new Date(item.date).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))
-              )}
-            </Box>
-          )}
-        </CommitListContainer>
-      </Box>
-    </Box>
+                  </div>
+                  <span className="hidden sm:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
+                    {formatDate(commit.date)}
+                  </span>
+                  <span className="hidden md:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
+                    {commit.author}
+                  </span>
+                  <span className="flex-[0.5] min-w-[60px] px-2 font-mono text-textSecondary">
+                    {truncateSha(commit.sha)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

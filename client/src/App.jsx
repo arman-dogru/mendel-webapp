@@ -1,13 +1,9 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
+import { RepoProvider } from "./context/RepoContext";
 
 function AppContent() {
   return (
@@ -24,7 +20,7 @@ function AppContent() {
             }
           />
           <Route
-            path="/dashboard"
+            path="/dashboard/:repoFullName"
             element={
               <ProtectedRoute>
                 <DashboardPage />
@@ -50,7 +46,9 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <RepoProvider>
+        <AppContent />
+      </RepoProvider>
     </Router>
   );
 }

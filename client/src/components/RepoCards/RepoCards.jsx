@@ -4,9 +4,11 @@ import StarIcon from "@mui/icons-material/Star";
 import ForkRightIcon from "@mui/icons-material/ForkRight";
 import "./RepoCards.css";
 import { useNavigate } from "react-router-dom";
+import { useRepo } from "../../context/RepoContext";
 
 function RepoCards({ repos }) {
   const navigate = useNavigate();
+  const { setSelectedRepo } = useRepo();
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -18,7 +20,8 @@ function RepoCards({ repos }) {
   };
 
   const handleRepositoryNavigation = (repo) => {
-    navigate("/dashboard", { state: { repo: repo.full_name } });
+    setSelectedRepo(repo.full_name);
+    navigate(`/dashboard/${encodeURIComponent(repo.full_name)}`);
   };
 
   return (

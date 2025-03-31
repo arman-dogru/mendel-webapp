@@ -48,10 +48,10 @@ export const getRepoBranches = async (owner, repo) => {
   }
 };
 
-export const getRepoCommits = async (owner, repo) => {
+export const getRepoCommits = async (owner, repo, branch) => {
   try {
     const response = await axiosInstance.get(
-      `/api/repos/${owner}/${repo}/commits`
+      `/api/repos/${owner}/${repo}/commits?branch=${branch}`
     );
     return response.data;
   } catch (error) {
@@ -60,50 +60,14 @@ export const getRepoCommits = async (owner, repo) => {
   }
 };
 
-export const getBranchCommits = async (owner, repo, branch, page = 1) => {
+export const getRepoMerges = async (owner, repo) => {
   try {
     const response = await axiosInstance.get(
-      `/api/repos/${owner}/${repo}/commits/${branch}`,
-      {
-        params: {
-          page,
-          per_page: 100,
-        },
-      }
+      `/api/repos/${owner}/${repo}/merges`
     );
     return response.data;
   } catch (error) {
-    console.error(`Error fetching commits for branch ${branch}:`, error);
-    if (error.response && error.response.status === 404) {
-      return [];
-    }
-    throw error;
-  }
-};
-
-export const getRepoPullRequests = async (owner, repo) => {
-  try {
-    const response = await axiosInstance.get(
-      `/api/repos/${owner}/${repo}/pulls`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching pull requests:", error);
-    throw error;
-  }
-};
-
-export const getGitTree = async (owner, repo) => {
-  try {
-    const response = await axiosInstance.get(
-      `/api/repos/${owner}/${repo}/git-tree`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching git tree data:", error);
-    if (error.response && error.response.status === 404) {
-      return { branches: [], commits: [] };
-    }
+    console.error("Error fetching merges:", error);
     throw error;
   }
 };
