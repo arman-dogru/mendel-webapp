@@ -1,5 +1,6 @@
 const express = require("express");
 const authRoutes = require("./routes/authRoutes");
+const reposRoutes = require("./routes/repoRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 const { Cookie } = require("express-session");
 const cors = require("cors");
@@ -32,6 +33,7 @@ app.use(
 );
 
 app.use("/api/auth", authRoutes);
+app.use("/api/repos", reposRoutes);
 
 app.use(errorHandler);
 

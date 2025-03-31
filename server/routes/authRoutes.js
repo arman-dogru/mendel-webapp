@@ -6,6 +6,7 @@ const {
   getUserData,
   getUserRepos,
   checkAuthStatus,
+  logout,
 } = require("../controllers/authController");
 const router = express.Router();
 
@@ -14,5 +15,5 @@ router.get("/github/callback", handleGitHubCallback);
 router.get("/user", getUserData);
 router.get("/repos", checkAuth, getUserRepos);
 router.get("/check-auth/status", checkAuthStatus);
-
+router.post("/logout", logout);
 module.exports = router;

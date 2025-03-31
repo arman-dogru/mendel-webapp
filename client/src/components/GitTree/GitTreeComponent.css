@@ -1,0 +1,27 @@
+svg .link {
+  stroke: #555;
+}
+
+svg circle {
+  cursor: pointer;
+}
+
+svg text {
+  font-size: 12px;
+  fill: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .branch-labels {
+    font-size: 10px !important;
+  }
+
+  .node text {
+    font-size: 10px !important;
+  }
+}
+
+svg {
+  min-width: 100%;
+  overflow: visible;
+}
