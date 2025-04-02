@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useRepo } from "../../context/RepoContext";
 import { getRepoIssues } from "../../utils/api";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, subWeeks, subMonths } from "date-fns";
 
 const Issues = () => {
   const { repoFullName } = useParams();
@@ -18,6 +18,7 @@ const Issues = () => {
   const [allAuthors, setAllAuthors] = useState([]);
   const [allMilestones, setAllMilestones] = useState([]);
   const [authorFilter, setAuthorFilter] = useState("");
+  const [timeFrameFilter, setTimeFrameFilter] = useState("all"); // New state for time frame
 
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
   const [owner, repoName] = repo ? repo.split("/") : ["", ""];
@@ -74,9 +75,23 @@ const Issues = () => {
     fetchIssues();
   }, [owner, repoName, authorFilter, milestoneFilter, sortFilter]);
 
-  const displayedIssues = issues
-    .filter((issue) => issue.status === activeTab)
-    .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true));
+  const filterByTimeFrame = (issues) => {
+    const now = new Date();
+    if (timeFrameFilter === "lastWeek") {
+      const lastWeek = subWeeks(now, 1);
+      return issues.filter((issue) => new Date(issue.createdAt) >= lastWeek);
+    } else if (timeFrameFilter === "lastMonth") {
+      const lastMonth = subMonths(now, 1);
+      return issues.filter((issue) => new Date(issue.createdAt) >= lastMonth);
+    }
+    return issues;
+  };
+
+  const displayedIssues = filterByTimeFrame(
+    issues
+      .filter((issue) => issue.status === activeTab)
+      .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true))
+  );
 
   const openIssuesCount = issues.filter(
     (issue) => issue.status === "open"
@@ -190,6 +205,21 @@ const Issues = () => {
               </option>
               <option value="oldest" className="text-white bg-gray-800">
                 Oldest
+              </option>
+            </select>
+            <select
+              value={timeFrameFilter}
+              onChange={(e) => setTimeFrameFilter(e.target.value)}
+              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+            >
+              <option value="all" className="text-white bg-gray-800">
+                All Time
+              </option>
+              <option value="lastWeek" className="text-white bg-gray-800">
+                Last Week
+              </option>
+              <option value="lastMonth" className="text-white bg-gray-800">
+                Last Month
               </option>
             </select>
           </div>
