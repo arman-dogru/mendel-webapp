@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 import GitTreeComponent from "../components/GitTree/GitTreeComponent";
+import Issues from "../components/Issues/IssuesComponent";
 import { useRepo } from "../context/RepoContext";
 
 const DashboardPage = () => {
   const { repoFullName } = useParams();
   const { selectedRepo, setSelectedRepo } = useRepo();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("Branches");
+  const location = useLocation();
+
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get("tab") || "Branches";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
 
@@ -20,6 +25,14 @@ const DashboardPage = () => {
       navigate("/homepage", { replace: true });
     }
   }, [repo, selectedRepo, setSelectedRepo, navigate]);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    queryParams.set("tab", activeTab);
+    navigate(`${location.pathname}?${queryParams.toString()}`, {
+      replace: true,
+    });
+  }, [activeTab, navigate, location.pathname, location.search]);
 
   if (!repo) {
     return (
@@ -33,6 +46,12 @@ const DashboardPage = () => {
     switch (activeTab) {
       case "Branches":
         return <GitTreeComponent repo={repo} />;
+      case "Issues":
+        return <Issues repo={repo} />;
+      case "PRs":
+        return <div>PRs content coming soon...</div>;
+      case "Dashboards":
+        return <div>Dashboards content coming soon...</div>;
       default:
         return <div>Select a tab to view content.</div>;
     }
@@ -40,7 +59,7 @@ const DashboardPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen dark-bg">
-      <Navbar setActiveTab={setActiveTab} activeTab={activeTab} />
+      <Navbar setActiveTab={setActiveTab} activeTab={activeTab} repo={repo} />
       <main className="flex-1 max-w-7xl mx-auto p-6">
         <h2 className="text-2xl font-bold text-textPrimary mb-4">{repo}</h2>
         {renderContent()}
