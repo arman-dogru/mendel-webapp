@@ -1,61 +1,69 @@
 const axios = require("axios");
 const { AppError } = require("../utils/errorHandler");
 
+const githubApiRequest = async (url, accessToken, params = {}) => {
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+      },
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const { status, data } = error.response;
+      if (status === 403 || status === 429) {
+        throw new AppError("API rate limit exceeded", 429);
+      }
+      if (status === 404) {
+        throw new AppError("Resource not found", 404);
+      }
+      throw new AppError(
+        `GitHub API error: ${data.message || "Unknown error"}`,
+        status
+      );
+    }
+    throw new AppError("Failed to reach GitHub API", 503);
+  }
+};
+
 const getRepoBranches = async (req, res, next) => {
   const { owner, repo } = req.params;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Access token not found", 401));
-  }
+  const { accessToken } = req;
 
   try {
-    const response = await axios.get(
+    const data = await githubApiRequest(
       `https://api.github.com/repos/${owner}/${repo}/branches`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github+json",
-        },
-      }
+      accessToken
     );
-
-    const branches = response.data.map((branch) => ({
+    const branches = data.map((branch) => ({
       name: branch.name,
       commit: branch.commit.sha,
     }));
 
     res.json(branches);
   } catch (error) {
-    console.error("Error fetching branches:", error.message);
-    next(new AppError("Failed to fetch branches", 500));
+    next(error);
   }
 };
 
 const getRepoCommits = async (req, res, next) => {
   const { owner, repo } = req.params;
   const { branch } = req.query;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Access token not found", 401));
-  }
+  const { accessToken } = req;
 
   if (!branch) {
     return next(new AppError("Branch name is required", 400));
   }
 
   try {
-    const response = await axios.get(
+    const data = await githubApiRequest(
       `https://api.github.com/repos/${owner}/${repo}/commits?sha=${branch}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github+json",
-        },
-      }
+      accessToken
     );
-    const commits = response.data.map((commit) => ({
+    const commits = data.map((commit) => ({
       sha: commit.sha,
       message: commit.commit.message,
       author: commit.commit.author.name,
@@ -66,31 +74,20 @@ const getRepoCommits = async (req, res, next) => {
 
     res.json(commits);
   } catch (error) {
-    console.error("Error fetching commits:", error.message);
-    next(new AppError("Failed to fetch commits", 500));
+    next(error);
   }
 };
 
 const getRepoMerges = async (req, res, next) => {
   const { owner, repo } = req.params;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Access token not found", 401));
-  }
+  const { accessToken } = req;
 
   try {
-    const response = await axios.get(
+    const data = await githubApiRequest(
       `https://api.github.com/repos/${owner}/${repo}/pulls?state=closed`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github+json",
-        },
-      }
+      accessToken
     );
-
-    const merges = response.data
+    const merges = data
       .filter((pr) => pr.merged_at)
       .map((pr) => ({
         prNumber: pr.number,
@@ -103,8 +100,36 @@ const getRepoMerges = async (req, res, next) => {
 
     res.json(merges);
   } catch (error) {
-    console.error("Error fetching merges:", error.message);
-    next(new AppError("Failed to fetch merges", 500));
+    next(error);
+  }
+};
+
+const getRepoIssues = async (req, res, next) => {
+  const { owner, repo } = req.params;
+  const { state = "open" } = req.query;
+  const { accessToken } = req;
+
+  try {
+    const data = await githubApiRequest(
+      `https://api.github.com/repos/${owner}/${repo}/issues?state=${state}`,
+      accessToken
+    );
+    const issues = data
+      .filter((issue) => !issue.pull_request)
+      .map((issue) => ({
+        id: issue.number,
+        title: issue.title,
+        createdAt: issue.created_at,
+        author: issue.user.login,
+        status: issue.state,
+        labels: issue.labels.map((label) => label.name),
+        comments: issue.comments,
+        url: issue.html_url,
+      }));
+
+    res.json(issues);
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -112,4 +137,5 @@ module.exports = {
   getRepoBranches,
   getRepoCommits,
   getRepoMerges,
+  getRepoIssues,
 };

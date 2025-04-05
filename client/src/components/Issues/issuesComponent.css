@@ -1,0 +1,12 @@
+a:hover {
+  text-decoration: none;
+}
+
+.bg-issue-card {
+  background-color: #1a1a1a;
+  transition: background-color 0.2s ease;
+}
+
+.bg-issue-card:hover {
+  background-color: #2a2a2a;
+}

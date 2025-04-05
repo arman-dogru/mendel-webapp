@@ -57,11 +57,9 @@ function HomePage() {
   return (
     <>
       <HomePageNavbar />
-      <div className="max-w-7xl mx-auto p-6 sm:p-4 bg-darkBg text-textPrimary">
-        <h2 className="text-2xl sm:text-xl font-bold mb-4">
-          Your Repositories
-        </h2>
-        <div className="mb-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-3 bg-darkBg text-textPrimary">
+        <h2 className="text-xl sm:text-lg font-bold mb-3">Your Repositories</h2>
+        <div className="mb-4">
           <TextField
             placeholder="Search repositories..."
             value={searchQuery}

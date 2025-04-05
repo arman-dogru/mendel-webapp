@@ -11,20 +11,23 @@ import { FaUserCircle } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Navbar.css";
 
-function Navbar({ setActiveTab, activeTab }) {
+function Navbar({ setActiveTab, activeTab, repo }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const basePath = repo
+    ? `/dashboard/${encodeURIComponent(repo)}`
+    : "/dashboard";
+
   const navLinks = [
-    { label: "Dashboards", path: "/dashboard", tab: "Dashboards" }, // Add tab for Dashboards
-    { label: "Branches", path: "/dashboard", tab: "Branches" },
-    { label: "PR's", path: "/dashboard", tab: "PRs" },
-    { label: "Issues", path: "/dashboard", tab: "Issues" },
+    { label: "Dashboards", path: basePath, tab: "Dashboards" },
+    { label: "Branches", path: basePath, tab: "Branches" },
+    { label: "PR's", path: basePath, tab: "PRs" },
+    { label: "Issues", path: basePath, tab: "Issues" },
   ];
 
   const handleNavigation = (path, tab) => {
-    navigate(path);
-    setActiveTab(tab); // Always set the tab
+    setActiveTab(tab);
   };
 
   return (
@@ -57,7 +60,7 @@ function Navbar({ setActiveTab, activeTab }) {
                 key={link.label}
                 onClick={() => handleNavigation(link.path, link.tab)}
                 sx={{
-                  color: activeTab === link.tab ? "#EF4444" : "#9CA3AF", // Use activeTab only
+                  color: activeTab === link.tab ? "#EF4444" : "#9CA3AF",
                   fontWeight: "medium",
                   textTransform: "none",
                   "&:hover": { color: "#FFFFFF" },

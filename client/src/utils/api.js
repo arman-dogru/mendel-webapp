@@ -71,3 +71,15 @@ export const getRepoMerges = async (owner, repo) => {
     throw error;
   }
 };
+
+export const getRepoIssues = async (owner, repo, state = "open") => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/repos/${owner}/${repo}/issues?state=${state}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching issues:", error);
+    throw error;
+  }
+};

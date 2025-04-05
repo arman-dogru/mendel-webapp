@@ -29,17 +29,12 @@ function RepoCards({ repos }) {
       {repos.map((repo) => (
         <div key={repo.id} className="p-4 sm:p-3 card-bg rounded-lg shadow-md">
           <div className="flex items-center gap-2 mb-2">
-            <GitHubIcon
-              sx={{
-                color: "var(--text-secondary)",
-                fontSize: { xs: "1rem", sm: "1.25rem" },
-              }}
-            />
             <a
               href={repo.html_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-lg sm:text-base font-semibold text-primary hover:underline truncate"
+              title={repo.full_name}
             >
               {repo.full_name}
             </a>
