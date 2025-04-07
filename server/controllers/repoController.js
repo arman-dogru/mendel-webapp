@@ -133,9 +133,79 @@ const getRepoIssues = async (req, res, next) => {
   }
 };
 
+const getRepoPR = async (req, res, next) => {
+  const { owner, repo } = req.params;
+  const { accessToken } = req;
+  const currentUser = req.session.username;
+  const { branch } = req.query;
+
+  if (!currentUser) {
+    return next(new AppError("User not authenticated", 401));
+  }
+
+  try {
+    const data = await githubApiRequest(
+      `https://api.github.com/repos/${owner}/${repo}/pulls`,
+      accessToken,
+      { state: "all", per_page: 100, base: branch || "master" }
+    );
+
+    const prs = await Promise.all(
+      data.map(async (pr) => {
+        const commentsData = await githubApiRequest(
+          `https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`,
+          accessToken
+        );
+
+        return {
+          id: pr.number,
+          title: pr.title,
+          createdAt: pr.created_at,
+          author: pr.user.login,
+          status: pr.state,
+          labels: pr.labels.map((label) => label.name),
+          comments: commentsData.length,
+          mergedAt: pr.merged_at,
+          requestedReviewers: pr.requested_reviewers
+            ? pr.requested_reviewers.map((reviewer) => reviewer.login)
+            : [],
+          baseBranch: pr.base.ref,
+          headBranch: pr.head.ref,
+          url: pr.html_url,
+        };
+      })
+    );
+
+    const categorizedPRs = {
+      open: [],
+      needsYourReview: [],
+      waitingForAuthor: [],
+      closed: [],
+      merged: [],
+    };
+
+    prs.forEach((pr) => {
+      if (pr.status === "open") {
+        if (pr.comments > 0 && pr.author === currentUser) {
+          categorizedPRs.waitingForAuthor.push(pr);
+        } else {
+          categorizedPRs.needsYourReview.push(pr);
+        }
+      } else if (pr.status === "closed") {
+        categorizedPRs.merged.push(pr);
+      }
+    });
+
+    res.json(categorizedPRs);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRepoBranches,
   getRepoCommits,
   getRepoMerges,
   getRepoIssues,
+  getRepoPR,
 };

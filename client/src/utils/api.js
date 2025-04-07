@@ -83,3 +83,15 @@ export const getRepoIssues = async (owner, repo, state = "open") => {
     throw error;
   }
 };
+
+export const getRepoPRs = async (owner, repo, branch = "master") => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/repos/${owner}/${repo}/pulls?branch=${branch}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Prs", error);
+    throw error;
+  }
+};
