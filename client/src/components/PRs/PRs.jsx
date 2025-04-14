@@ -7,6 +7,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import "./PRs.css";
+import { handleApiError } from "../../utils/errorHandler";
 
 const PRs = () => {
   const { repoFullName } = useParams();
@@ -57,7 +58,7 @@ const PRs = () => {
         setBranches(branchResponse || []);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to fetch data. Please try again.");
+        setError(handleApiError(err));
       } finally {
         setLoading(false);
       }
@@ -107,55 +108,60 @@ const PRs = () => {
                 {prs.map((pr) => (
                   <li
                     key={pr.id}
-                    className="p-4 rounded-lg shadow hover:bg-[var(--card-bg-hover)] transition-all duration-300 bg-cardBg"
+                    className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover"
                   >
-                    {/* PR Title as a clickable link */}
-                    <a
-                      href={pr.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline text-sm"
-                    >
-                      #{pr.id} {pr.title}
-                    </a>
-                    <p className="text-textSecondary text-xs mt-1">
-                      Created by {pr.author} on{" "}
-                      {new Date(pr.createdAt).toLocaleDateString()}
-                    </p>
-                    <div className="mt-1">
-                      {pr.labels.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {pr.labels.map((label) => (
-                            <span
-                              key={label}
-                              className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded"
-                            >
-                              {label}
-                            </span>
-                          ))}
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <a
+                          href={pr.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline text-sm"
+                        >
+                          #{pr.id} {pr.title}
+                        </a>
+                        <p className="text-textSecondary text-xs mt-1">
+                          Created by {pr.author} on{" "}
+                          {new Date(pr.createdAt).toLocaleDateString()}
+                        </p>
+                        <div className="mt-1">
+                          {pr.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {pr.labels.map((label, index) => (
+                                <span
+                                  key={`${label}-${index}`}
+                                  className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded"
+                                >
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {pr.comments > 0 ? (
+                          <a
+                            href={`${pr.url}#issuecomment`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline text-xs"
+                          >
+                            {pr.comments} 💬
+                          </a>
+                        ) : (
+                          <span className="text-textSecondary text-xs">
+                            {pr.comments} 💬
+                          </span>
+                        )}
+                        {pr.mergedAt && (
+                          <p className="text-green-400 text-xs">
+                            Merged on{" "}
+                            {new Date(pr.mergedAt).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {/* Comments as a clickable link */}
-                    {pr.comments > 0 ? (
-                      <a
-                        href={`${pr.url}#issuecomment`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline text-xs mt-1 block"
-                      >
-                        Comments: {pr.comments}
-                      </a>
-                    ) : (
-                      <p className="text-textSecondary text-xs mt-1">
-                        Comments: {pr.comments}
-                      </p>
-                    )}
-                    {pr.mergedAt && (
-                      <p className="text-green-400 text-xs">
-                        Merged on {new Date(pr.mergedAt).toLocaleDateString()}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>

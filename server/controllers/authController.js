@@ -46,7 +46,7 @@ const handleGitHubCallback = async (req, res, next) => {
     const username = userResponse.data.login;
 
     if (!username) {
-      throw new AppError("Failed to fetch username", 500);
+      throw new AppError("username not found", 404);
     }
 
     req.session.accessToken = accessToken;

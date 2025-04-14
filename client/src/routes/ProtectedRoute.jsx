@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { checkAuthStatus } from "../utils/api";
+import { handleApiError } from "../utils/errorHandler";
 
 function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -14,6 +15,7 @@ function ProtectedRoute({ children }) {
       } catch (error) {
         console.error("Error verifying authentication:", error);
         setIsAuthenticated(false);
+        setError(handleApiError(error));
       } finally {
         setLoading(false);
       }

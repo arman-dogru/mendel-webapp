@@ -8,6 +8,7 @@ import {
   getRepoCommits,
   getRepoMerges,
 } from "../../utils/api";
+import { handleApiError } from "../../utils/errorHandler";
 
 const GitTreeComponent = ({ repo }) => {
   const [commits, setCommits] = useState([]);
@@ -68,7 +69,7 @@ const GitTreeComponent = ({ repo }) => {
         setFilteredBranches(branchesData.map((b) => b.name));
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load repository data");
+        setError(handleApiError(err));
       } finally {
         setLoading(false);
       }

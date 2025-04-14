@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useRepo } from "../../context/RepoContext";
 import { getRepoIssues } from "../../utils/api";
 import { formatDistanceToNow, subWeeks, subMonths } from "date-fns";
+import { handleApiError } from "../../utils/errorHandler";
 
 const Issues = () => {
   const { repoFullName } = useParams();
@@ -67,7 +68,8 @@ const Issues = () => {
         setIssues(filteredIssues);
         setLoading(false);
       } catch (err) {
-        setError("Failed to load issues.");
+        console.error("Error fetching issues:", err);
+        setError(handleApiError(err));
         setLoading(false);
       }
     };
@@ -269,20 +271,20 @@ const Issues = () => {
                               label === "bug"
                                 ? "bg-[#EF4444]"
                                 : label === "enhancement"
-                                ? "bg-[#8B5CF6]"
-                                : label === "help wanted"
-                                ? "bg-[#10B981]"
-                                : label === "good first issue"
-                                ? "bg-[#F59E0B]"
-                                : label === "more-information-needed"
-                                ? "bg-[#3B82F6]"
-                                : label === "priority-2"
-                                ? "bg-[#3B82F6]"
-                                : label === "priority-3"
-                                ? "bg-[#3B82F6]"
-                                : label === "tech-debt"
-                                ? "bg-[#8B5CF6]"
-                                : "bg-[#6B7280]"
+                                  ? "bg-[#8B5CF6]"
+                                  : label === "help wanted"
+                                    ? "bg-[#10B981]"
+                                    : label === "good first issue"
+                                      ? "bg-[#F59E0B]"
+                                      : label === "more-information-needed"
+                                        ? "bg-[#3B82F6]"
+                                        : label === "priority-2"
+                                          ? "bg-[#3B82F6]"
+                                          : label === "priority-3"
+                                            ? "bg-[#3B82F6]"
+                                            : label === "tech-debt"
+                                              ? "bg-[#8B5CF6]"
+                                              : "bg-[#6B7280]"
                             }`}
                           >
                             {label}
