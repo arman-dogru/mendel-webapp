@@ -26,20 +26,25 @@ const GitTreeComponent = ({ repo }) => {
   const generateBranchColors = (branchList) => {
     const colors = {};
     const baseColors = [
-      "#2196f3",
-      "#e91e63",
-      "#4caf50",
-      "#ff9800",
-      "#9c27b0",
-      "#795548",
-      "#607d8b",
-      "#ff5722",
-      "#3f51b5",
-      "#009688",
+      "#2196f3", // main - blue
+      "#e91e63", // pink
+      "#4caf50", // green
+      "#ff9800", // orange
+      "#9c27b0", // purple
+      "#795548", // brown
+      "#607d8b", // blue-grey
+      "#ff5722", // deep orange
+      "#3f51b5", // indigo
+      "#009688", // teal
+      "#ffeb3b", // yellow
+      "#8bc34a", // light green
+      "#673ab7", // deep purple
+      "#00bcd4", // cyan
     ];
+
     branchList.forEach((branch, index) => {
       colors[branch.name] =
-        branch.name === "main"
+        branch.name === "main" || branch.name === "master"
           ? baseColors[0]
           : baseColors[(index % (baseColors.length - 1)) + 1];
     });
@@ -61,7 +66,8 @@ const GitTreeComponent = ({ repo }) => {
         const commitsDataArray = await Promise.all(commitPromises);
         const uniqueCommits = Array.from(
           new Map(commitsDataArray.flat().map((c) => [c.sha, c])).values()
-        );
+        ).sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending
+
         setCommits(uniqueCommits);
 
         const mergesData = await getRepoMerges(owner, repoName);
@@ -79,8 +85,10 @@ const GitTreeComponent = ({ repo }) => {
   }, [repo]);
 
   const branchColors = generateBranchColors(branches);
+
+  // Using chronological order instead of reverse chronological order
   const sortedCommits = [...commits].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
+    (a, b) => new Date(a.date) - new Date(b.date)
   );
 
   const getBaseBranch = (branchName) => {
@@ -148,119 +156,156 @@ const GitTreeComponent = ({ repo }) => {
       return;
     }
 
-    const visibleBranches =
-      selectedBranch === "All branches"
-        ? branches
-        : branches
-            .filter((b) => filteredBranches.includes(b.name))
-            .sort((a, b) => {
-              if (a.name === "main") return -1;
-              if (b.name === "main") return 1;
-              if (a.name === selectedBranch) return -1;
-              if (b.name === selectedBranch) return 1;
-              return 0;
-            });
+    // Create a simpler branch lane system
+    const branchIndices = {};
+    const mainBranchName =
+      branches.find((b) => b.name === "main" || b.name === "master")?.name ||
+      "main";
 
-    const margin = { top: 40, right: 20, bottom: 20, left: 20 };
-    const laneWidth = Math.max(
-      (width - margin.left - margin.right) /
-        Math.max(visibleBranches.length, 1),
-      60
-    );
-    const yStep = 60;
-    const fontSize = Math.max(12, Math.min(14, width / 80));
-    const circleRadius = Math.max(6, Math.min(10, width / 100));
-    const strokeWidth = Math.max(1, width / 400);
+    // Make sure main branch is index 0
+    branchIndices[mainBranchName] = 0;
+
+    // Assign indices to other branches
+    let branchIndex = 1;
+    filteredBranches
+      .filter((b) => b !== mainBranchName)
+      .forEach((branch) => {
+        branchIndices[branch] = branchIndex++;
+      });
+
+    const margin = { top: 40, right: 50, bottom: 20, left: 50 };
+    const maxBranches = Math.max(Object.keys(branchIndices).length, 1);
+    const innerWidth = width - margin.left - margin.right;
+    const laneSpacing = Math.min(Math.max(innerWidth / 6, 60), 100);
+    const yStep = 50;
+    const circleRadius = 8;
+    const strokeWidth = 2;
 
     const g = svg
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
+    // Create branch lanes (horizontal position for each branch)
     const branchLanes = {};
-    visibleBranches.forEach((branch, i) => {
-      branchLanes[branch.name] = i * laneWidth + laneWidth / 2;
+    Object.entries(branchIndices).forEach(([branch, index]) => {
+      branchLanes[branch] = index * laneSpacing;
     });
 
+    // Calculate vertical positions for commits (chronological order)
     const commitPositions = new Map();
-    const mergeCommits = new Map();
+    const commitYPositions = {};
 
-    filteredCommits.forEach((commit, index) => {
-      const lane =
-        branchLanes[commit.branch] || branchLanes["main"] || laneWidth / 2;
-      commitPositions.set(commit.sha, {
-        x: lane,
-        y: index * yStep,
-        commit,
-      });
-
-      if (isMergeCommit(commit)) {
-        mergeCommits.set(commit.sha, {
-          commit,
-          parents: commit.parents.map((parentSha) => ({
-            sha: parentSha,
-            branch: filteredCommits.find((c) => c.sha === parentSha)?.branch,
-          })),
-        });
+    // First pass - assign Y positions based on date (sort by date)
+    let currentY = 0;
+    filteredCommits.forEach((commit, i) => {
+      // Assign y position - commits with same date get same y
+      if (i > 0 && commit.date === filteredCommits[i - 1].date) {
+        commitYPositions[commit.sha] =
+          commitYPositions[filteredCommits[i - 1].sha];
+      } else {
+        commitYPositions[commit.sha] = currentY;
+        currentY += yStep;
       }
     });
 
-    // Draw branch labels
-    g.selectAll(".branch-label")
-      .data(visibleBranches)
-      .enter()
-      .append("text")
-      .attr("x", (d) => branchLanes[d.name])
-      .attr("y", -10)
-      .attr("text-anchor", "middle")
-      .attr("fill", (d) => branchColors[d.name])
-      .style("font-size", `${fontSize}px`)
-      .style("font-weight", "bold")
-      .text((d) => d.name);
+    // Second pass - calculate x,y positions for each commit
+    filteredCommits.forEach((commit) => {
+      const lane =
+        branchLanes[commit.branch] || branchLanes[mainBranchName] || 0;
+      commitPositions.set(commit.sha, {
+        x: lane,
+        y: commitYPositions[commit.sha],
+        commit,
+      });
+    });
 
-    // Draw paths
-    g.selectAll(".link")
-      .data(filteredCommits.filter((c) => c.parents.length > 0))
-      .enter()
-      .append("path")
-      .attr("d", (d) => {
-        const targetPos = commitPositions.get(d.sha);
-        if (!targetPos) return "";
-        let path = "";
-        d.parents.forEach((parentSha) => {
-          const parentPos = commitPositions.get(parentSha);
-          if (parentPos) {
-            const parentBranch = filteredCommits.find(
-              (c) => c.sha === parentSha
-            )?.branch;
-            if (isMergeCommit(d) && parentBranch !== d.branch) {
-              path += `M${targetPos.x},${targetPos.y} V${
-                (targetPos.y + parentPos.y) / 2
-              } H${parentPos.x} V${parentPos.y}`;
-            } else {
-              path += `M${targetPos.x},${targetPos.y} V${parentPos.y}`;
-            }
-          }
-        });
-        return path;
-      })
-      .attr("fill", "none")
-      .attr("stroke", (d) => branchColors[d.branch] || "#555")
-      .attr("stroke-width", strokeWidth)
-      .attr("stroke-dasharray", (d) => (isMergeCommit(d) ? "5,5" : null));
+    // Identify merge commits for special handling
+    const mergeCommits = filteredCommits.filter(isMergeCommit);
 
-    // Draw nodes
+    // Draw branch lanes (vertical lines)
+    Object.entries(branchLanes).forEach(([branch, lane]) => {
+      // Find min and max Y position for this branch
+      const branchCommits = filteredCommits.filter((c) => c.branch === branch);
+      if (branchCommits.length > 0) {
+        const minY = Math.min(
+          ...branchCommits.map((c) => commitPositions.get(c.sha).y)
+        );
+        const maxY = Math.max(
+          ...branchCommits.map((c) => commitPositions.get(c.sha).y)
+        );
+
+        g.append("line")
+          .attr("x1", lane)
+          .attr("y1", minY)
+          .attr("x2", lane)
+          .attr("y2", maxY)
+          .attr("stroke", branchColors[branch] || "#555")
+          .attr("stroke-width", 2)
+          .attr("opacity", 0.5);
+      }
+    });
+
+    // Draw connections between commits (parent -> child relationships)
+    filteredCommits.forEach((commit) => {
+      const sourcePos = commitPositions.get(commit.sha);
+      if (!sourcePos) return;
+
+      commit.parents.forEach((parentSha) => {
+        const targetPos = commitPositions.get(parentSha);
+        if (!targetPos) return;
+
+        const isMergeConnection =
+          commit.parents.length > 1 &&
+          sourcePos.commit.branch !== targetPos.commit.branch;
+
+        if (isMergeConnection) {
+          const midY = (sourcePos.y + targetPos.y) / 2;
+
+          g.append("path")
+            .attr(
+              "d",
+              `M${sourcePos.x},${sourcePos.y} 
+                        C${sourcePos.x},${midY} 
+                          ${targetPos.x},${midY} 
+                          ${targetPos.x},${targetPos.y}`
+            )
+            .attr("fill", "none")
+            .attr("stroke", branchColors[targetPos.commit.branch] || "#555")
+            .attr("stroke-width", strokeWidth)
+            .attr("stroke-dasharray", "5,5");
+        } else if (sourcePos.x !== targetPos.x) {
+          g.append("path")
+            .attr(
+              "d",
+              `M${sourcePos.x},${sourcePos.y} 
+                        L${targetPos.x},${sourcePos.y} 
+                        L${targetPos.x},${targetPos.y}`
+            )
+            .attr("fill", "none")
+            .attr("stroke", branchColors[sourcePos.commit.branch] || "#555")
+            .attr("stroke-width", strokeWidth);
+        } else {
+          g.append("line")
+            .attr("x1", sourcePos.x)
+            .attr("y1", sourcePos.y)
+            .attr("x2", targetPos.x)
+            .attr("y2", targetPos.y)
+            .attr("stroke", branchColors[sourcePos.commit.branch] || "#555")
+            .attr("stroke-width", strokeWidth);
+        }
+      });
+    });
+
     const nodes = g
       .selectAll(".node")
       .data(filteredCommits)
       .enter()
       .append("g")
-      .attr(
-        "transform",
-        (d) =>
-          `translate(${commitPositions.get(d.sha).x},${
-            commitPositions.get(d.sha).y
-          })`
-      )
+      .attr("class", "node")
+      .attr("transform", (d) => {
+        const pos = commitPositions.get(d.sha);
+        return `translate(${pos.x},${pos.y})`;
+      })
       .on("mouseover", (_, d) => setHoveredCommit(d.sha))
       .on("mouseout", () => setHoveredCommit(null));
 
@@ -269,21 +314,45 @@ const GitTreeComponent = ({ repo }) => {
       .attr("r", (d) =>
         hoveredCommit === d.sha ? circleRadius * 1.4 : circleRadius
       )
-      .attr("fill", (d) => (isMergeCommit(d) ? "none" : branchColors[d.branch]))
-      .attr("stroke", (d) => branchColors[d.branch])
+      .attr("fill", (d) => {
+        if (isMergeCommit(d)) return "transparent";
+        return branchColors[d.branch] || "#555";
+      })
+      .attr("stroke", (d) => branchColors[d.branch] || "#555")
       .attr("stroke-width", strokeWidth);
 
+    const branchLabels = g.append("g").attr("class", "branch-labels");
+
+    Object.entries(branchLanes).forEach(([branch, lane]) => {
+      branchLabels
+        .append("text")
+        .attr("x", lane)
+        .attr("y", -15)
+        .attr("text-anchor", "middle")
+        .attr("fill", branchColors[branch] || "#555")
+        .style("font-weight", "bold")
+        .text(branch);
+    });
+
     nodes
-      .append("text")
-      .attr("dx", circleRadius * 2)
-      .attr("dy", ".35em")
-      .attr("fill", "var(--text-primary)")
-      .style("font-size", `${fontSize}px`)
-      .text((d) =>
-        isMergeCommit(d)
-          ? "Merge"
-          : truncateMessage(d.message, Math.floor(width / 40))
-      );
+      .filter((d) => hoveredCommit === d.sha)
+      .append("g")
+      .attr("class", "commit-tooltip")
+      .call((g) => {
+        g.append("rect")
+          .attr("x", 15)
+          .attr("y", -15)
+          .attr("width", 200)
+          .attr("height", 30)
+          .attr("fill", "#3a3a3a")
+          .attr("rx", 4);
+
+        g.append("text")
+          .attr("x", 25)
+          .attr("y", 0)
+          .attr("fill", "var(--text-primary)")
+          .text((d) => truncateMessage(d.message, 25));
+      });
   }, [
     filteredCommits,
     branches,
@@ -352,15 +421,15 @@ const GitTreeComponent = ({ repo }) => {
       <div className="flex flex-col lg:flex-row flex-1 gap-4 p-4 overflow-hidden">
         <div
           ref={containerRef}
-          className="w-full lg:w-1/2 h-[50vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col"
+          className="w-full lg:w-1/2 h-[60vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col"
         >
-          <h2 className="text-lg font-semibold mb-2">Tree Visualization</h2>
+          <h2 className="text-lg font-semibold mb-2">Git Tree Visualization</h2>
           <div className="flex-1 overflow-auto">
             <svg ref={svgRef} className="w-full min-h-full"></svg>
           </div>
         </div>
 
-        <div className="w-full lg:w-1/2 h-[50vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col overflow-hidden">
+        <div className="w-full lg:w-1/2 h-[60vh] lg:h-auto border border-gray-600 rounded bg-cardBg p-4 flex flex-col overflow-hidden">
           <h2 className="text-lg font-semibold mb-2">Commit History</h2>
           <div className="flex p-2 bg-gray-700 border-b border-gray-600 font-medium text-sm">
             <span className="flex-1 min-w-0 px-2">Description</span>
@@ -373,52 +442,57 @@ const GitTreeComponent = ({ repo }) => {
             <span className="flex-[0.5] min-w-[60px] px-2">Commit</span>
           </div>
           <div className="flex-1 overflow-auto">
-            {filteredCommits.map((commit) => {
-              const pr = isMergeCommit(commit)
-                ? findPrForMerge(commit.sha)
-                : null;
-              return (
-                <div
-                  key={commit.sha}
-                  className={`flex p-2 border-b border-gray-600 hover:bg-gray-600 text-sm ${
-                    hoveredCommit === commit.sha ? "bg-gray-600" : ""
-                  }`}
-                  onMouseEnter={() => setHoveredCommit(commit.sha)}
-                  onMouseLeave={() => setHoveredCommit(null)}
-                >
-                  <div className="flex-1 min-w-0 px-2 flex items-center gap-2">
-                    <span
-                      className={`w-3 h-3 flex-shrink-0 rounded-full ${
-                        isMergeCommit(commit) ? "border-2" : ""
-                      }`}
-                      style={{
-                        backgroundColor: isMergeCommit(commit)
-                          ? "transparent"
-                          : branchColors[commit.branch],
-                        borderColor: branchColors[commit.branch],
-                      }}
-                    />
-                    <span className="truncate">
-                      {pr ? `${pr.title} (PR #${pr.prNumber})` : commit.message}
-                    </span>
-                    {isMergeCommit(commit) && (
-                      <span className="ml-1 px-1 py-0.5 bg-gray-600 rounded text-xs">
-                        Merge
+            {filteredCommits
+              .slice()
+              .reverse()
+              .map((commit) => {
+                const pr = isMergeCommit(commit)
+                  ? findPrForMerge(commit.sha)
+                  : null;
+                return (
+                  <div
+                    key={commit.sha}
+                    className={`flex p-2 border-b border-gray-600 hover:bg-gray-600 text-sm ${
+                      hoveredCommit === commit.sha ? "bg-gray-600" : ""
+                    }`}
+                    onMouseEnter={() => setHoveredCommit(commit.sha)}
+                    onMouseLeave={() => setHoveredCommit(null)}
+                  >
+                    <div className="flex-1 min-w-0 px-2 flex items-center gap-2">
+                      <span
+                        className={`w-3 h-3 flex-shrink-0 rounded-full ${
+                          isMergeCommit(commit) ? "border-2" : ""
+                        }`}
+                        style={{
+                          backgroundColor: isMergeCommit(commit)
+                            ? "transparent"
+                            : branchColors[commit.branch],
+                          borderColor: branchColors[commit.branch],
+                        }}
+                      />
+                      <span className="truncate">
+                        {pr
+                          ? `${pr.title} (PR #${pr.prNumber})`
+                          : commit.message}
                       </span>
-                    )}
+                      {isMergeCommit(commit) && (
+                        <span className="ml-1 px-1 py-0.5 bg-gray-600 rounded text-xs">
+                          Merge
+                        </span>
+                      )}
+                    </div>
+                    <span className="hidden sm:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
+                      {formatDate(commit.date)}
+                    </span>
+                    <span className="hidden md:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
+                      {commit.author}
+                    </span>
+                    <span className="flex-[0.5] min-w-[60px] px-2 font-mono text-textSecondary">
+                      {truncateSha(commit.sha)}
+                    </span>
                   </div>
-                  <span className="hidden sm:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
-                    {formatDate(commit.date)}
-                  </span>
-                  <span className="hidden md:block flex-[0.5] min-w-[80px] px-2 text-textSecondary truncate">
-                    {commit.author}
-                  </span>
-                  <span className="flex-[0.5] min-w-[60px] px-2 font-mono text-textSecondary">
-                    {truncateSha(commit.sha)}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       </div>

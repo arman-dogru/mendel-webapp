@@ -52,7 +52,7 @@ const Issues = () => {
 
         filteredIssues = milestoneFilter
           ? filteredIssues.filter(
-              (issue) => issue.milestone === milestoneFilter
+              (issue) => issue.milestone === milestoneFilter,
             )
           : filteredIssues;
 
@@ -92,14 +92,14 @@ const Issues = () => {
   const displayedIssues = filterByTimeFrame(
     issues
       .filter((issue) => issue.status === activeTab)
-      .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true))
+      .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true)),
   );
 
   const openIssuesCount = issues.filter(
-    (issue) => issue.status === "open"
+    (issue) => issue.status === "open",
   ).length;
   const closedIssuesCount = issues.filter(
-    (issue) => issue.status === "closed"
+    (issue) => issue.status === "closed",
   ).length;
 
   if (loading) {

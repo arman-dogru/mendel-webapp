@@ -43,7 +43,7 @@ function HomePage() {
 
   useEffect(() => {
     const filtered = repos.filter((repo) =>
-      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredRepos(filtered);
   }, [searchQuery, repos]);
