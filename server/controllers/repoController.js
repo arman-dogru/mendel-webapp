@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { decryptData } = require("../utils/crypto");
 const { AppError } = require("../utils/errorHandler");
 
 const githubApiRequest = async (url, accessToken, params = {}) => {
@@ -31,11 +32,7 @@ const githubApiRequest = async (url, accessToken, params = {}) => {
 
 const getRepoBranches = async (req, res, next) => {
   const { owner, repo } = req.params;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Not authenticated", 401));
-  }
+  const { accessToken } = req;
 
   try {
     const data = await githubApiRequest(
@@ -56,11 +53,7 @@ const getRepoBranches = async (req, res, next) => {
 const getRepoCommits = async (req, res, next) => {
   const { owner, repo } = req.params;
   const { branch } = req.query;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Not authenticated", 401));
-  }
+  const { accessToken } = req;
 
   if (!branch) {
     return next(new AppError("Branch name is required", 400));
@@ -88,11 +81,7 @@ const getRepoCommits = async (req, res, next) => {
 
 const getRepoMerges = async (req, res, next) => {
   const { owner, repo } = req.params;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Not authenticated", 401));
-  }
+  const { accessToken } = req;
 
   try {
     const data = await githubApiRequest(
@@ -119,11 +108,7 @@ const getRepoMerges = async (req, res, next) => {
 const getRepoIssues = async (req, res, next) => {
   const { owner, repo } = req.params;
   const { state = "open" } = req.query;
-  const accessToken = req.session.accessToken;
-
-  if (!accessToken) {
-    return next(new AppError("Not authenticated", 401));
-  }
+  const { accessToken } = req;
 
   try {
     const data = await githubApiRequest(
@@ -151,18 +136,12 @@ const getRepoIssues = async (req, res, next) => {
 
 const getRepoPR = async (req, res, next) => {
   const { owner, repo } = req.params;
+  const { accessToken } = req;
+  const encryptedUsername = req.session.encryptedUsername;
+  const currentUser = encryptedUsername ? decryptData(encryptedUsername) : null;
   const { branch } = req.query;
-  const accessToken = req.session.accessToken;
-  const currentUser = req.session.userInfo
-    ? req.session.userInfo.username
-    : null;
-
-  if (!accessToken) {
-    return next(new AppError("Not authenticated", 401));
-  }
-
   if (!currentUser) {
-    return next(new AppError("User information not found", 400));
+    return next(new AppError("User not authenticated", 401));
   }
 
   try {
