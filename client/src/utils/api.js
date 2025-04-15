@@ -1,5 +1,6 @@
 import axios from "axios";
 const VITE_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+import sampleData from "../data/gittree.json";
 
 const axiosInstance = axios.create({
   baseURL: VITE_BASE_URL,
@@ -80,6 +81,18 @@ export const getRepoIssues = async (owner, repo, state = "open") => {
     return response.data;
   } catch (error) {
     console.error("Error fetching issues:", error);
+    throw error;
+  }
+};
+
+export const getRepoPRs = async (owner, repo, branch = "master") => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/repos/${owner}/${repo}/pulls?branch=${branch}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Prs", error);
     throw error;
   }
 };

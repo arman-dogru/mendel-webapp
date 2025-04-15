@@ -1,0 +1,232 @@
+{
+  "branches": [
+    {
+      "name": "main",
+      "commit": "5e9b8df4f3d21c31e20589a6f74b5887d4a7e93c"
+    },
+    {
+      "name": "feature/user-auth",
+      "commit": "9c54f84e32c9a845a897f1d054f47e4b0bf3e5d9"
+    },
+    {
+      "name": "feature/dashboard",
+      "commit": "43ab560893d5aeeb7869dfa9876d3e987a1b18ed"
+    },
+    {
+      "name": "hotfix/login-bug",
+      "commit": "2b7733ae42895832cb61f1bbdbb2c8c9e9edb307"
+    },
+    {
+      "name": "release/v1.0",
+      "commit": "758ba6fe2e4d25482c6438c10bc3d8c5cd53bbe7"
+    }
+  ],
+  "commits": [
+    {
+      "sha": "c71d98743f045912b775e646a08f3c3e0534a234",
+      "message": "Initial commit",
+      "author": "John Doe",
+      "date": "2025-03-01T10:00:00Z",
+      "branch": "main",
+      "parents": []
+    },
+    {
+      "sha": "a4c59e78d3f847b882cb52f7e80a61d132ea23b1",
+      "message": "Add project structure",
+      "author": "John Doe",
+      "date": "2025-03-02T11:30:00Z",
+      "branch": "main",
+      "parents": ["c71d98743f045912b775e646a08f3c3e0534a234"]
+    },
+    {
+      "sha": "b8e3f5673a928c4d9a6f93548a0e1324c6d79f6e",
+      "message": "Create authentication files",
+      "author": "Jane Smith",
+      "date": "2025-03-03T09:15:00Z",
+      "branch": "feature/user-auth",
+      "parents": ["a4c59e78d3f847b882cb52f7e80a61d132ea23b1"]
+    },
+    {
+      "sha": "f6d9e5b7c8a9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+      "message": "Add basic login form",
+      "author": "Jane Smith",
+      "date": "2025-03-03T14:45:00Z",
+      "branch": "feature/user-auth",
+      "parents": ["b8e3f5673a928c4d9a6f93548a0e1324c6d79f6e"]
+    },
+    {
+      "sha": "0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e",
+      "message": "Implement user service",
+      "author": "Jane Smith",
+      "date": "2025-03-04T10:30:00Z",
+      "branch": "feature/user-auth",
+      "parents": ["f6d9e5b7c8a9d0e1f2a3b4c5d6e7f8a9b0c1d2e3"]
+    },
+    {
+      "sha": "e4d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1",
+      "message": "Setup dashboard layout",
+      "author": "Bob Johnson",
+      "date": "2025-03-04T11:00:00Z",
+      "branch": "feature/dashboard",
+      "parents": ["a4c59e78d3f847b882cb52f7e80a61d132ea23b1"]
+    },
+    {
+      "sha": "d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2",
+      "message": "Add dashboard components",
+      "author": "Bob Johnson",
+      "date": "2025-03-05T09:20:00Z",
+      "branch": "feature/dashboard",
+      "parents": ["e4d9c8b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1"]
+    },
+    {
+      "sha": "9c54f84e32c9a845a897f1d054f47e4b0bf3e5d9",
+      "message": "Complete authentication flow",
+      "author": "Jane Smith",
+      "date": "2025-03-05T15:00:00Z",
+      "branch": "feature/user-auth",
+      "parents": ["0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e"]
+    },
+    {
+      "sha": "5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b",
+      "message": "Merge feature/user-auth into main",
+      "author": "John Doe",
+      "date": "2025-03-06T10:00:00Z",
+      "branch": "main",
+      "parents": [
+        "a4c59e78d3f847b882cb52f7e80a61d132ea23b1",
+        "9c54f84e32c9a845a897f1d054f47e4b0bf3e5d9"
+      ]
+    },
+    {
+      "sha": "2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d",
+      "message": "Fix styling issues",
+      "author": "John Doe",
+      "date": "2025-03-07T13:30:00Z",
+      "branch": "main",
+      "parents": ["5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b"]
+    },
+    {
+      "sha": "43ab560893d5aeeb7869dfa9876d3e987a1b18ed",
+      "message": "Implement dashboard charts",
+      "author": "Bob Johnson",
+      "date": "2025-03-08T09:00:00Z",
+      "branch": "feature/dashboard",
+      "parents": ["d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2"]
+    },
+    {
+      "sha": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+      "message": "Merge feature/dashboard into main",
+      "author": "John Doe",
+      "date": "2025-03-09T11:15:00Z",
+      "branch": "main",
+      "parents": [
+        "2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d",
+        "43ab560893d5aeeb7869dfa9876d3e987a1b18ed"
+      ]
+    },
+    {
+      "sha": "b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9",
+      "message": "Fix login redirect issue",
+      "author": "Alice Lee",
+      "date": "2025-03-10T14:00:00Z",
+      "branch": "hotfix/login-bug",
+      "parents": ["a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"]
+    },
+    {
+      "sha": "2b7733ae42895832cb61f1bbdbb2c8c9e9edb307",
+      "message": "Complete login fix",
+      "author": "Alice Lee",
+      "date": "2025-03-10T16:30:00Z",
+      "branch": "hotfix/login-bug",
+      "parents": ["b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9"]
+    },
+    {
+      "sha": "c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9",
+      "message": "Merge hotfix/login-bug into main",
+      "author": "John Doe",
+      "date": "2025-03-11T09:00:00Z",
+      "branch": "main",
+      "parents": [
+        "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+        "2b7733ae42895832cb61f1bbdbb2c8c9e9edb307"
+      ]
+    },
+    {
+      "sha": "d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0",
+      "message": "Create release branch",
+      "author": "John Doe",
+      "date": "2025-03-12T10:30:00Z",
+      "branch": "release/v1.0",
+      "parents": ["c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9"]
+    },
+    {
+      "sha": "e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
+      "message": "Update version number",
+      "author": "John Doe",
+      "date": "2025-03-12T11:45:00Z",
+      "branch": "release/v1.0",
+      "parents": ["d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0"]
+    },
+    {
+      "sha": "f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
+      "message": "Add release notes",
+      "author": "John Doe",
+      "date": "2025-03-13T09:15:00Z",
+      "branch": "release/v1.0",
+      "parents": ["e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"]
+    },
+    {
+      "sha": "758ba6fe2e4d25482c6438c10bc3d8c5cd53bbe7",
+      "message": "Final release preparations",
+      "author": "John Doe",
+      "date": "2025-03-14T14:00:00Z",
+      "branch": "release/v1.0",
+      "parents": ["f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2"]
+    },
+    {
+      "sha": "5e9b8df4f3d21c31e20589a6f74b5887d4a7e93c",
+      "message": "Merge release/v1.0 into main",
+      "author": "John Doe",
+      "date": "2025-03-15T10:00:00Z",
+      "branch": "main",
+      "parents": [
+        "c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9",
+        "758ba6fe2e4d25482c6438c10bc3d8c5cd53bbe7"
+      ]
+    }
+  ],
+  "merges": [
+    {
+      "prNumber": 42,
+      "title": "Add user authentication",
+      "mergedAt": "2025-03-06T10:00:00Z",
+      "baseBranch": "main",
+      "headBranch": "feature/user-auth",
+      "mergeCommitSha": "5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b"
+    },
+    {
+      "prNumber": 43,
+      "title": "Add dashboard functionality",
+      "mergedAt": "2025-03-09T11:15:00Z",
+      "baseBranch": "main",
+      "headBranch": "feature/dashboard",
+      "mergeCommitSha": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+    },
+    {
+      "prNumber": 44,
+      "title": "Fix login redirect issue",
+      "mergedAt": "2025-03-11T09:00:00Z",
+      "baseBranch": "main",
+      "headBranch": "hotfix/login-bug",
+      "mergeCommitSha": "c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9"
+    },
+    {
+      "prNumber": 45,
+      "title": "Release version 1.0",
+      "mergedAt": "2025-03-15T10:00:00Z",
+      "baseBranch": "main",
+      "headBranch": "release/v1.0",
+      "mergeCommitSha": "5e9b8df4f3d21c31e20589a6f74b5887d4a7e93c"
+    }
+  ]
+}

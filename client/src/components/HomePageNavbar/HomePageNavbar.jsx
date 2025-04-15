@@ -15,7 +15,7 @@ function HomePageNavbar() {
       navigate("/", { replace: true });
     } catch (error) {
       alert(
-        "Logout failed: " + (error.response?.data?.message || error.message)
+        "Logout failed: " + (error.response?.data?.message || error.message),
       );
     }
   };

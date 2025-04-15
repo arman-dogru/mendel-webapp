@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
 import GitTreeComponent from "../components/GitTree/GitTreeComponent";
 import Issues from "../components/Issues/IssuesComponent";
+import PRs from "../components/PRs/PRs";
 import { useRepo } from "../context/RepoContext";
 
 const DashboardPage = () => {
@@ -49,7 +50,7 @@ const DashboardPage = () => {
       case "Issues":
         return <Issues repo={repo} />;
       case "PRs":
-        return <div>PRs content coming soon...</div>;
+        return <PRs repo={repo} />;
       case "Dashboards":
         return <div>Dashboards content coming soon...</div>;
       default:
@@ -60,7 +61,7 @@ const DashboardPage = () => {
   return (
     <div className="flex flex-col min-h-screen dark-bg">
       <Navbar setActiveTab={setActiveTab} activeTab={activeTab} repo={repo} />
-      <main className="flex-1 max-w-7xl mx-auto p-6">
+      <main className="flex-1 w-full  mx-auto p-6">
         <h2 className="text-2xl font-bold text-textPrimary mb-4">{repo}</h2>
         {renderContent()}
       </main>

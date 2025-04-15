@@ -5,6 +5,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import RepoCards from "../components/RepoCards/RepoCards";
 import { getUserRepos, checkAuthStatus } from "../utils/api";
 import HomePageNavbar from "../components/HomePageNavbar/HomePageNavbar";
+import { handleApiError } from "../utils/errorHandler";
 
 function HomePage() {
   const [repos, setRepos] = useState([]);
@@ -32,6 +33,7 @@ function HomePage() {
         setLoading(false);
       } catch (err) {
         setError("Failed to load repositories.");
+        setError(handleApiError(err));
         setLoading(false);
       }
     };
@@ -41,7 +43,7 @@ function HomePage() {
 
   useEffect(() => {
     const filtered = repos.filter((repo) =>
-      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredRepos(filtered);
   }, [searchQuery, repos]);

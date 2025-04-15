@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { encryptData } = require("../utils/crypto");
 const {
   GITHUB_CLIENT_ID,
   CALLBACK_URL,
@@ -36,7 +37,21 @@ const handleGitHubCallback = async (req, res, next) => {
     if (!accessToken) {
       throw new AppError("Access token not found", 401);
     }
+
+    const userResponse = await axios.get("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
+    const username = userResponse.data.login;
+
+    if (!username) {
+      throw new AppError("username not found", 404);
+    }
+
     req.session.accessToken = accessToken;
+    req.session.encryptedUsername = encryptData(username);
     res.redirect(`${FRONTEND_URL}/homepage`);
   } catch (error) {
     console.error("Error in callback:", error.message);
@@ -107,6 +122,7 @@ const logout = (req, res) => {
     res.json({ message: "Logged out successfully" });
   });
 };
+
 module.exports = {
   startGitHubOauth,
   handleGitHubCallback,

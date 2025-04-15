@@ -1,5 +1,4 @@
 import { Button } from "@mui/material";
-import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import ForkRightIcon from "@mui/icons-material/ForkRight";
 import "./RepoCards.css";
