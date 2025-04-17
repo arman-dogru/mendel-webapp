@@ -1,14 +1,46 @@
-/* Ensure cards are readable on very small screens */
-@media (max-width: 400px) {
-  .MuiButton-root {
-    font-size: 0.65rem !important;
-    padding: 3px 6px !important;
-  }
+:root {
+  --dark-bg: #0d1117;
+  --card-bg: #161b22;
+  --card-bg-hover: #1f2937;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --border-color: #30363d;
+  --javascript-color: #f1e05a;
 }
 
-@media (max-width: 300px) {
-  .MuiButton-root {
-    font-size: 0.6rem !important;
-    padding: 2px 4px !important;
+.card-bg {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+  cursor: pointer;
+}
+
+.card-bg:hover {
+  transform: translateY(-2px);
+  border-color: #8b949e;
+}
+
+.text-textPrimary {
+  color: var(--text-primary);
+}
+
+.text-textSecondary {
+  color: var(--text-secondary);
+}
+
+.bg-darkBg {
+  background-color: var(--dark-bg);
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .card-bg {
+    font-size: 0.9rem;
   }
 }

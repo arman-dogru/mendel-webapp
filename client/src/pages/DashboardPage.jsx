@@ -7,7 +7,9 @@ import Issues from "../components/Issues/IssuesComponent";
 import PRs from "../components/PRs/PRs";
 import CodeAnalysisComponent from "../components/CodeAnalysis/CodeAnalysisComponent"; // Import the new component
 import { useRepo } from "../context/RepoContext";
+import TeamsComponents from "../components/Teams/TeamsComponents";
 import { Box, Typography } from '@mui/material'; // For placeholder content
+
 
 const DashboardPage = () => {
   const { repoFullName } = useParams();
@@ -45,7 +47,6 @@ const DashboardPage = () => {
 
 
   if (!repo) {
-    // This might briefly show while redirecting
     return (
       <div className="min-h-screen dark-bg flex justify-center items-center">
         <div className="text-secondary">Loading repository context...</div>
@@ -64,7 +65,12 @@ const DashboardPage = () => {
       case "PRs":
         return <PRs repo={repo} />;
       case "Dashboards":
+        return <div>Dashboards content coming soon...</div>;
+      case "Teams":
+        return <TeamsComponents />;
+
         return <Box sx={{ p: 3 }}><Typography sx={{color: 'text.secondary'}}>Dashboards content coming soon...</Typography></Box>;
+
       default:
         // Should not happen due to initial state logic, but good fallback
         return <Box sx={{ p: 3 }}><Typography sx={{color: 'text.secondary'}}>Select a tab to view content.</Typography></Box>;
