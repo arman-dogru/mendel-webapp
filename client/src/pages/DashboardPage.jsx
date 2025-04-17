@@ -5,6 +5,7 @@ import GitTreeComponent from "../components/GitTree/GitTreeComponent";
 import Issues from "../components/Issues/IssuesComponent";
 import PRs from "../components/PRs/PRs";
 import { useRepo } from "../context/RepoContext";
+import TeamsComponents from "../components/Teams/TeamsComponents";
 
 const DashboardPage = () => {
   const { repoFullName } = useParams();
@@ -53,6 +54,8 @@ const DashboardPage = () => {
         return <PRs repo={repo} />;
       case "Dashboards":
         return <div>Dashboards content coming soon...</div>;
+      case "Teams":
+        return <TeamsComponents />;
       default:
         return <div>Select a tab to view content.</div>;
     }

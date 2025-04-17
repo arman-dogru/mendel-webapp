@@ -1,9 +1,9 @@
-import { Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useRepo } from "../../context/RepoContext";
+import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import ForkRightIcon from "@mui/icons-material/ForkRight";
 import "./RepoCards.css";
-import { useNavigate } from "react-router-dom";
-import { useRepo } from "../../context/RepoContext";
 
 function RepoCards({ repos }) {
   const navigate = useNavigate();
@@ -11,11 +11,7 @@ function RepoCards({ repos }) {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
   };
 
   const handleRepositoryNavigation = (repo) => {
@@ -26,68 +22,57 @@ function RepoCards({ repos }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {repos.map((repo) => (
-        <div key={repo.id} className="p-4 sm:p-3 card-bg rounded-lg shadow-md">
-          <div className="flex items-center gap-2 mb-2">
-            <a
-              href={repo.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-lg sm:text-base font-semibold text-primary hover:underline truncate"
-              title={repo.full_name}
-            >
-              {repo.full_name}
-            </a>
+        <div
+          key={repo.id}
+          className="card-bg rounded-md shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+          onClick={() => handleRepositoryNavigation(repo)}
+        >
+          <div className="p-4 pb-2">
+            <div className="flex items-start mb-1">
+              <div className="flex flex-col">
+                <span className="text-textPrimary font-semibold text-sm hover:underline cursor-pointer truncate">
+                  {repo.name}
+                </span>
+                <span className="text-textSecondary text-xs">
+                  {repo.owner?.login || "shailendra-jaani"}
+                </span>
+              </div>
+            </div>
+            <p className="text-textSecondary text-xs mt-3 mb-2 h-12 overflow-hidden">
+              {repo.description || "No description available"}
+            </p>
+            <div className="mt-6 mb-2">
+              <span className="text-xs text-textSecondary flex items-center">
+                <span
+                  className="w-2 h-2 rounded-full mr-1 inline-block"
+                  style={{
+                    backgroundColor:
+                      repo.language === "JavaScript"
+                        ? "var(--javascript-color)"
+                        : "#ccc",
+                  }}
+                ></span>
+                JavaScript
+              </span>
+            </div>
           </div>
-          <p className="text-secondary text-sm sm:text-xs mb-3 line-clamp-2">
-            {repo.description || "No description available"}
-          </p>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-1 text-sm sm:text-xs text-secondary mb-3">
-            <span>
-              {repo.visibility || (repo.private ? "private" : "public")}
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="w-3 h-3 sm:w-2 sm:h-2 rounded-full inline-block"
-                style={{
-                  backgroundColor:
-                    repo.language === "JavaScript"
-                      ? "var(--javascript-color)"
-                      : "#ccc",
-                }}
-              ></span>
-              {repo.language || "Unknown"}
-            </span>
-            <span className="flex items-center gap-1">
-              <StarIcon
-                sx={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}
-              />
-              {repo.stargazers_count}
-            </span>
-            <span className="flex items-center gap-1">
-              <ForkRightIcon
-                sx={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}
-              />
-              {repo.forks_count}
-            </span>
+
+          {/* Footer with stats */}
+          <div className="flex justify-between items-center px-4 py-2 border-t border-gray-700 bg-opacity-50 text-xs text-textSecondary">
+            <div className="flex items-center">
+              <StarIcon sx={{ fontSize: 14, marginRight: 0.5 }} />
+              <span>{repo.stargazers_count || 0}</span>
+            </div>
+
+            <div className="flex items-center ml-4">
+              <ForkRightIcon sx={{ fontSize: 14, marginRight: 0.5 }} />
+              <span>{repo.forks_count || 0}</span>
+            </div>
+
+            <div className="ml-auto">
+              <span>Updated {formatDate(repo.updated_at)}</span>
+            </div>
           </div>
-          <p className="text-secondary text-sm sm:text-xs mb-3">
-            Updated {formatDate(repo.updated_at)}
-          </p>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => handleRepositoryNavigation(repo)}
-            sx={{
-              backgroundColor: "var(--button-bg)",
-              color: "var(--text-primary)",
-              textTransform: "none",
-              fontSize: "0.75rem",
-              padding: "4px 8px",
-              "&:hover": { backgroundColor: "var(--button-hover-bg)" },
-            }}
-          >
-            Select Repository
-          </Button>
         </div>
       ))}
     </div>

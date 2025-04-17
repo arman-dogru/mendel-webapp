@@ -11,13 +11,17 @@ function HomePageNavbar() {
 
   const handleLogout = async () => {
     try {
-      const response = await logout();
+      await logout();
       navigate("/", { replace: true });
     } catch (error) {
       alert(
-        "Logout failed: " + (error.response?.data?.message || error.message),
+        "Logout failed: " + (error.response?.data?.message || error.message)
       );
     }
+  };
+
+  const handleLogoClick = () => {
+    navigate("/homepage");
   };
 
   return (
@@ -31,13 +35,17 @@ function HomePageNavbar() {
       <Toolbar className="flex justify-between px-4">
         <div className="flex items-center space-x-2">
           <img
-            src="/MENDEL_LAB_LOGO.jpg"
+            src="/MENDEL_LAB_LOGO-nobackground.png"
             alt="Mendel Lab Logo"
             className="logo"
+            onClick={handleLogoClick}
+            style={{ cursor: "pointer" }}
           />
           <Typography
             variant="h6"
             className="text-white font-semibold tracking-wide"
+            onClick={handleLogoClick}
+            style={{ cursor: "pointer" }}
           >
             MENDEL
           </Typography>

@@ -140,6 +140,7 @@ const getRepoPR = async (req, res, next) => {
   const encryptedUsername = req.session.encryptedUsername;
   const currentUser = encryptedUsername ? decryptData(encryptedUsername) : null;
   const { branch } = req.query;
+
   if (!currentUser) {
     return next(new AppError("User not authenticated", 401));
   }
@@ -151,31 +152,34 @@ const getRepoPR = async (req, res, next) => {
       { state: "all", per_page: 100, base: branch || "master" }
     );
 
-    const prs = await Promise.all(
-      data.map(async (pr) => {
-        const commentsData = await githubApiRequest(
-          `https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`,
-          accessToken
-        );
-
-        return {
-          id: pr.number,
-          title: pr.title,
-          createdAt: pr.created_at,
-          author: pr.user.login,
-          status: pr.state,
-          labels: pr.labels.map((label) => label.name),
-          comments: commentsData.length,
-          mergedAt: pr.merged_at,
-          requestedReviewers: pr.requested_reviewers
-            ? pr.requested_reviewers.map((reviewer) => reviewer.login)
-            : [],
-          baseBranch: pr.base.ref,
-          headBranch: pr.head.ref,
-          url: pr.html_url,
-        };
-      })
+    const commentFetchPromises = data.map((pr) =>
+      githubApiRequest(
+        `https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`,
+        accessToken
+      )
     );
+
+    const allCommentsData = await Promise.all(commentFetchPromises);
+    const prs = data.map((pr, index) => {
+      const commentsData = allCommentsData[index];
+
+      return {
+        id: pr.number,
+        title: pr.title,
+        createdAt: pr.created_at,
+        author: pr.user.login,
+        status: pr.state,
+        labels: pr.labels.map((label) => label.name),
+        comments: commentsData.length,
+        mergedAt: pr.merged_at,
+        requestedReviewers: pr.requested_reviewers
+          ? pr.requested_reviewers.map((reviewer) => reviewer.login)
+          : [],
+        baseBranch: pr.base.ref,
+        headBranch: pr.head.ref,
+        url: pr.html_url,
+      };
+    });
 
     const categorizedPRs = {
       open: [],
@@ -187,13 +191,19 @@ const getRepoPR = async (req, res, next) => {
 
     prs.forEach((pr) => {
       if (pr.status === "open") {
+        categorizedPRs.open.push(pr);
+
         if (pr.comments > 0 && pr.author === currentUser) {
           categorizedPRs.waitingForAuthor.push(pr);
         } else {
           categorizedPRs.needsYourReview.push(pr);
         }
       } else if (pr.status === "closed") {
-        categorizedPRs.merged.push(pr);
+        if (pr.mergedAt) {
+          categorizedPRs.merged.push(pr);
+        } else {
+          categorizedPRs.closed.push(pr);
+        }
       }
     });
 
@@ -203,10 +213,60 @@ const getRepoPR = async (req, res, next) => {
   }
 };
 
+const getRepoContributors = async (req, res, next) => {
+  const { owner, repo } = req.params;
+  const { accessToken } = req;
+
+  try {
+    const contributorsData = await githubApiRequest(
+      `https://api.github.com/repos/${owner}/${repo}/contributors`,
+      accessToken,
+      { per_page: 100 }
+    );
+
+    const contributors = await Promise.all(
+      contributorsData.map(async (contributor) => {
+        const prsData = await githubApiRequest(
+          `https://api.github.com/repos/${owner}/${repo}/pulls?state=all&creator=${contributor.login}`,
+          accessToken,
+          { per_page: 100 }
+        );
+        let email = "";
+        try {
+          const userData = await githubApiRequest(
+            `https://api.github.com/users/${contributor.login}`,
+            accessToken
+          );
+          email = userData.email || `${contributor.login}@github.com`;
+        } catch (error) {
+          console.error(
+            `Failed to fetch email for ${contributor.login}:`,
+            error.message
+          );
+          email = `${contributor.login}@github.com`;
+        }
+
+        return {
+          name: contributor.login,
+          email: email,
+          totalPRs: prsData.length,
+          contributions: contributor.contributions,
+          avatarUrl: contributor.avatar_url,
+          githubUrl: contributor.html_url,
+        };
+      })
+    );
+
+    res.json(contributors);
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   getRepoBranches,
   getRepoCommits,
   getRepoMerges,
   getRepoIssues,
   getRepoPR,
+  getRepoContributors,
 };

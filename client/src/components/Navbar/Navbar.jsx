@@ -24,12 +24,15 @@ function Navbar({ setActiveTab, activeTab, repo }) {
     { label: "Branches", path: basePath, tab: "Branches" },
     { label: "PR's", path: basePath, tab: "PRs" },
     { label: "Issues", path: basePath, tab: "Issues" },
+    { label: "Teams", path: basePath, tab: "Teams" },
   ];
 
   const handleNavigation = (path, tab) => {
     setActiveTab(tab);
   };
-
+  const handleLogoClick = () => {
+    navigate("/homepage");
+  };
   return (
     <AppBar
       position="static"
@@ -43,13 +46,17 @@ function Navbar({ setActiveTab, activeTab, repo }) {
         <Box className="flex items-center">
           <Box className="flex items-center space-x-2">
             <img
-              src="/MENDEL_LAB_LOGO.jpg"
+              src="/MENDEL_LAB_LOGO-nobackground.png"
               alt="Mendel Lab Logo"
               className="logo"
+              onClick={handleLogoClick}
+              style={{ cursor: "pointer" }}
             />
             <Typography
               variant="h6"
               className="text-white font-semibold tracking-wide"
+              onClick={handleLogoClick}
+              style={{ cursor: "pointer" }}
             >
               MENDEL
             </Typography>

@@ -88,11 +88,23 @@ export const getRepoIssues = async (owner, repo, state = "open") => {
 export const getRepoPRs = async (owner, repo, branch = "master") => {
   try {
     const response = await axiosInstance.get(
-      `/api/repos/${owner}/${repo}/pulls?branch=${branch}`
+      `/api/repos/${owner}/${repo}/pull-requests?branch=${branch}`
     );
     return response.data;
   } catch (error) {
     console.error("Error fetching Prs", error);
+    throw error;
+  }
+};
+
+export const getRepoContributors = async (owner, repo) => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/repos/${owner}/${repo}/contributors`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching contributors:", error);
     throw error;
   }
 };
