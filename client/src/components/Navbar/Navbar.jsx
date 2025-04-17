@@ -25,10 +25,16 @@ function Navbar({ setActiveTab, activeTab, repo }) {
     { label: "PR's", path: basePath, tab: "PRs" },
     { label: "Issues", path: basePath, tab: "Issues" },
     { label: "Teams", path: basePath, tab: "Teams" },
+    { label: "Analysis", path: basePath, tab: "Analysis" },
+
   ];
 
   const handleNavigation = (path, tab) => {
     setActiveTab(tab);
+    // Update URL query parameter when tab changes
+     const currentParams = new URLSearchParams(location.search);
+     currentParams.set('tab', tab);
+    navigate(`${location.pathname}?${currentParams.toString()}`, { replace: true });
   };
   const handleLogoClick = () => {
     navigate("/homepage");
@@ -62,21 +68,21 @@ function Navbar({ setActiveTab, activeTab, repo }) {
             </Typography>
           </Box>
           <Box className="flex items-center space-x-2 ml-4">
-            {navLinks.map((link) => (
-              <Button
-                key={link.label}
-                onClick={() => handleNavigation(link.path, link.tab)}
-                sx={{
-                  color: activeTab === link.tab ? "#EF4444" : "#9CA3AF",
-                  fontWeight: "medium",
-                  textTransform: "none",
-                  "&:hover": { color: "#FFFFFF" },
-                }}
-              >
-                {link.label}
-              </Button>
-            ))}
-          </Box>
+             {navLinks.map((link) => (
+               <Button
+                 key={link.label}
+                 onClick={() => handleNavigation(link.path, link.tab)}
+                 sx={{
+                   color: activeTab === link.tab ? "#EF4444" : "#9CA3AF",
+                   fontWeight: "medium",
+                   textTransform: "none",
+                   "&:hover": { color: "#FFFFFF" },
+                 }}
+               >
+                 {link.label}
+               </Button>
+             ))}
+           </Box>
         </Box>
 
         {/* Right Section: Icons */}
