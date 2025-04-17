@@ -92,7 +92,21 @@ export const getRepoPRs = async (owner, repo, branch = "master") => {
     );
     return response.data;
   } catch (error) {
-    console.error("Error fetching Prs", error);
+    console.error("Error fetching PRs", error);
+    throw error;
+  }
+};
+
+export const scanRepository = async (owner, repo) => {
+  try {
+    const response = await axiosInstance.post(`/api/scan/${owner}/${repo}`);
+    return response.data; 
+  } catch (error) {
+    console.error("Error scanning repository:", error);
+    
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
     throw error;
   }
 };
