@@ -1,78 +1,106 @@
 ```
 /my-web-app
+.
+├── README.md
 ├── client
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
 │   ├── public
-│   │   └── index.html
-│   └── src
-│       ├── assets
-│       │   ├── images
-│       │   │   └── (design mockup images, icons, etc.)
-│       │   └── styles
-│       │       └── global.css
-│       ├── components
-│       │   ├── Navbar
-│       │   │   ├── Navbar.jsx
-│       │   │   └── Navbar.css
-│       │   ├── GitTree
-│       │   │   ├── GitTree.jsx
-│       │   │   └── GitTree.css
-│       │   ├── Dashboard
-│       │   │   ├── Dashboard.jsx
-│       │   │   └── Dashboard.css
-│       │   ├── RepositoryDetails
-│       │   │   ├── RepositoryDetails.jsx
-│       │   │   └── RepositoryDetails.css
-│       │   └── TeamCard
-│       │       ├── TeamCard.jsx
-│       │       └── TeamCard.css
-│       ├── pages
-│       │   ├── HomePage.jsx
-│       │   ├── RepoPage.jsx
-│       │   ├── PRsPage.jsx
-│       │   ├── IssuesPage.jsx
-│       │   └── TeamPage.jsx
-│       ├── utils
-│       │   └── api.js           // API helper for client-server communication
-│       ├── App.jsx              // Main application component (includes route definitions)
-│       ├── index.jsx            // Entry point for React
-│       └── routes.jsx           // Optional: modular route configuration for react-router
-├── server
-│   ├── config
-│   │   ├── db.js              // MongoDB connection setup
-│   │   ├── passport.js        // GitHub OAuth strategy configuration
-│   │   └── gemini.js          // Gemini LLM API configuration
-│   ├── controllers
-│   │   ├── authController.js  // Handles authentication requests
-│   │   ├── repoController.js  // Handles repository-related logic (code review, scans, etc.)
-│   │   ├── teamController.js  // Handles team and contributor endpoints
-│   │   └── dashboardController.js // Serves data for various dashboards/charts
-│   ├── middleware
-│   │   ├── authMiddleware.js  // Middleware to protect routes (JWT, session, etc.)
-│   │   └── errorMiddleware.js // Global error handling
-│   ├── models
-│   │   ├── User.js            // Mongoose model for user profiles
-│   │   ├── Repository.js      // Model for repository details, branches, issues, PRs, etc.
-│   │   ├── PullRequest.js     // Model for PR information and review statuses
-│   │   ├── Issue.js           // Model for issues and GitHub labels/tags
-│   │   └── Contributor.js     // Model for tracking contributor stats and performance
-│   ├── routes
-│   │   ├── authRoutes.js      // Routes for login, callback (GitHub OAuth), etc.
-│   │   ├── repoRoutes.js      // Routes for repository data (scans, charts, graphs, Git Tree)
-│   │   ├── teamRoutes.js      // Routes for team and contributor data
-│   │   └── dashboardRoutes.js // Routes to serve dashboard metrics (PR reviews, security issues, etc.)
-│   ├── services
-│   │   ├── githubService.js   // Abstraction for GitHub API calls (PR review, issue linking, etc.)
-│   │   ├── geminiService.js   // Service for communicating with the Gemini LLM API
-│   │   └── scanService.js     // Service for performing code scans (docstrings, complexity, duplication, etc.)
-│   ├── utils
-│   │   ├── logger.js          // Logging utility (e.g., winston, morgan integration)
-│   │   └── errorHandler.js    // Custom error formatter/handler
-│   ├── app.js                 // Express app configuration (middleware, routes, etc.)
-│   └── server.js              // Server entry point (bootstraps the app)
-├── .env                       // Environment variables (DB connection, OAuth secrets, etc.)
-├── .gitignore                 // Files and folders to ignore in Git
-├── package.json               // Project metadata and dependencies
-└── README.md                  // Project documentation and setup instructions
+│   │   ├── MENDEL_LAB_LOGO-nobackground.png
+│   │   └── vite.svg
+│   ├── src
+│   │   ├── App.jsx
+│   │   ├── assets
+│   │   │   └── images
+│   │   ├── components
+│   │   │   ├── CodeAnalysis
+│   │   │   │   └── CodeAnalysisComponent.jsx
+│   │   │   ├── GitTree
+│   │   │   │   ├── GitTreeComponent.css
+│   │   │   │   └── GitTreeComponent.jsx
+│   │   │   ├── HomePageNavbar
+│   │   │   │   ├── HomePageNavbar.css
+│   │   │   │   └── HomePageNavbar.jsx
+│   │   │   ├── Issues
+│   │   │   │   ├── IssuesComponent.jsx
+│   │   │   │   └── issuesComponent.css
+│   │   │   ├── LoginButton
+│   │   │   │   ├── LoginButton.css
+│   │   │   │   └── LoginButton.jsx
+│   │   │   ├── Navbar
+│   │   │   │   ├── Navbar.css
+│   │   │   │   └── Navbar.jsx
+│   │   │   ├── PRs
+│   │   │   │   ├── PRs.css
+│   │   │   │   └── PRs.jsx
+│   │   │   ├── RepoCards
+│   │   │   │   ├── RepoCards.css
+│   │   │   │   └── RepoCards.jsx
+│   │   │   └── Teams
+│   │   │       ├── TeamComponents.css
+│   │   │       └── TeamsComponents.jsx
+│   │   ├── context
+│   │   │   └── RepoContext.jsx
+│   │   ├── data
+│   │   │   └── gittree.json
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   ├── pages
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── HomePage.jsx
+│   │   │   └── LoginPage.jsx
+│   │   ├── routes
+│   │   │   └── ProtectedRoute.jsx
+│   │   ├── styles
+│   │   │   └── global.css
+│   │   └── utils
+│   │       ├── api.js
+│   │       └── errorHandler.js
+│   └── vite.config.js
+├── package-lock.json
+├── package.json
+└── server
+    ├── config
+    │   ├── db.js
+    │   ├── env.js
+    │   ├── gemini.js
+    │   └── passport.js
+    ├── controllers
+    │   ├── authController.js
+    │   ├── dashboardController.js
+    │   ├── repoController.js
+    │   ├── scanController.js
+    │   └── teamController.js
+    ├── middleware
+    │   ├── authMiddleware.js
+    │   └── errorMiddleware.js
+    ├── models
+    │   ├── Contributor.js
+    │   ├── Issue.js
+    │   ├── PullRequest.js
+    │   ├── Repository.js
+    │   ├── Scan.js
+    │   └── User.js
+    ├── package-lock.json
+    ├── package.json
+    ├── routes
+    │   ├── authRoutes.js
+    │   ├── dashboardRoutes.js
+    │   ├── repoRoutes.js
+    │   ├── scanRoutes.js
+    │   └── teamRoutes.js
+    ├── server.js
+    ├── services
+    │   ├── geminiService.js
+    │   ├── githubService.js
+    │   └── scanService.js
+    └── utils
+        ├── crypto.js
+        ├── errorHandler.js
+        └── logger.js
 ```
 
 ---
