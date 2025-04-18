@@ -1,3 +1,4 @@
+// config/env.js
 require("dotenv").config();
 module.exports = {
   GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
@@ -7,4 +8,5 @@ module.exports = {
   SESSION_SECRET: process.env.SESSION_SECRET,
   PORT: process.env.PORT,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  MONGODB_URI: process.env.MONGODB_URI, // NEW
 };

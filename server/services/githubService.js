@@ -1,5 +1,7 @@
+// services/githubService.js
 const axios = require("axios");
 const { AppError } = require("../utils/errorHandler");
+const mongoose = require('mongoose'); // Import mongoose here if not already done for scanController ObjectId validation
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 
@@ -44,26 +46,51 @@ const handleGithubError = (error) => {
 };
 
 
+// Returns default branch name as string
 const getRepoDefaultBranch = async (owner, repo, accessToken) => {
     const url = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}`;
     const repoData = await githubApiRequest(url, accessToken);
     return repoData.default_branch;
 };
 
-const getRepoTree = async (owner, repo, branch, accessToken) => {
-    // First get the commit SHA for the branch
-    const branchUrl = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}/branches/${branch}`;
-    const branchData = await githubApiRequest(branchUrl, accessToken);
-    const commitSha = branchData.commit.sha;
+// Modified: Now directly uses the provided 'treeish' (branch or commit SHA)
+const getRepoTree = async (owner, repo, treeish, accessToken) => {
+    // The treeish parameter can be a commit SHA, branch name, or tag name.
+    // The GitHub API endpoint for getting a tree handles this directly.
+    const treeUrl = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}/git/trees/${treeish}?recursive=1`;
+    console.log(`Fetching tree using URL: ${treeUrl}`); // Add log for debugging
 
-    // Then get the tree recursively
-    const treeUrl = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}/git/trees/${commitSha}?recursive=1`;
-    const treeData = await githubApiRequest(treeUrl, accessToken);
+    try {
+        const treeData = await githubApiRequest(treeUrl, accessToken);
 
-    if (treeData.truncated) {
-         console.warn(`Repository ${owner}/${repo} tree is truncated. Some files may be missed.`);
+        if (treeData.truncated) {
+            console.warn(`Repository ${owner}/${repo} tree for ${treeish} is truncated. Some files may be missed.`);
+        }
+        // Ensure treeData.tree is always an array, even if empty
+        return treeData.tree || [];
+    } catch (error) {
+         console.error(`Error fetching tree directly for ${treeish}:`, error.message);
+         // Re-throw the error to be handled by the caller (scanService)
+         // The handleGithubError inside githubApiRequest will already convert it to AppError if applicable
+         throw error;
     }
-    return treeData.tree; // Array of file/dir objects { path, type, sha, size, url }
+};
+
+// Now returns an object { branchName, commitSha }
+const getRepoDefaultBranchInfo = async (owner, repo, accessToken) => {
+    const url = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}`;
+    const repoData = await githubApiRequest(url, accessToken);
+    const defaultBranchName = repoData.default_branch;
+
+    // Fetch the specific branch details to get the latest commit SHA
+    const branchUrl = `${GITHUB_API_BASE_URL}/repos/${owner}/${repo}/branches/${defaultBranchName}`;
+    const branchData = await githubApiRequest(branchUrl, accessToken);
+    const latestCommitSha = branchData.commit.sha;
+
+    return {
+         branchName: defaultBranchName,
+         commitSha: latestCommitSha
+    };
 };
 
 const getFileContent = async (owner, repo, fileSha, accessToken) => {
@@ -104,5 +131,6 @@ module.exports = {
     getRepoDefaultBranch,
     getRepoTree,
     getFileContent,
+    getRepoDefaultBranchInfo,
     // Expose githubApiRequest if needed elsewhere, or keep it internal
 };

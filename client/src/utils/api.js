@@ -122,3 +122,41 @@ export const getRepoContributors = async (owner, repo) => {
     throw error;
   }
 };
+
+
+/**
+ * Fetches a summary list of past scans for a repository.
+ * @param {string} owner - The repository owner.
+ * @param {string} repo - The repository name.
+ * @returns {Promise<Array<object>>} A promise resolving to an array of scan history summaries.
+ */
+export const getScanHistory = async (owner, repo) => {
+  try {
+    const response = await axiosInstance.get(`/api/scan/${owner}/${repo}/history`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching scan history for ${owner}/${repo}:`, error);
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetches the full details of a specific scan by its MongoDB ObjectId.
+ * @param {string} scanId - The MongoDB ObjectId of the scan.
+ * @returns {Promise<object>} A promise resolving to the full scan data object.
+ */
+export const getSpecificScan = async (scanId) => {
+  try {
+    const response = await axiosInstance.get(`/api/scan/${scanId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching specific scan ${scanId}:`, error);
+    if (error.response && error.response.data && error.response.data.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};

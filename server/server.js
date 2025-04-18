@@ -7,6 +7,10 @@ const errorHandler = require("./middleware/errorMiddleware");
 const cors = require("cors");
 const session = require("express-session");
 const { FRONTEND_URL, SESSION_SECRET, PORT } = require("./config/env");
+const connectDB = require('./config/db'); // <-- *** ADD THIS LINE ***
+
+// Connect to Database
+connectDB(); // <-- Now this function is defined
 
 const app = express();
 

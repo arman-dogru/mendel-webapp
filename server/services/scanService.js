@@ -1,11 +1,13 @@
 // services/scanService.js
 const githubService = require("./githubService");
 const geminiService = require("./geminiService");
+const Scan = require('../models/Scan'); // Import Scan model
 const { AppError } = require("../utils/errorHandler");
+const { jsonRepair } = require("jsonrepair");
 
 // --- Configuration (Keep as before) ---
-const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB limit per file
-const MAX_FILES_TO_ANALYZE = 100; // Limit number of files analyzed
+const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024;
+const MAX_FILES_TO_ANALYZE = 100;
 const RELEVANT_EXTENSIONS = new Set([
     '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cs', '.go', '.rb', '.php',
     '.html', '.css', '.scss', '.less', '.vue', '.svelte',
@@ -24,12 +26,20 @@ const EXCLUDED_FILES = new Set([
     'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
     '.env'
 ]);
-// Slightly smaller snippet for JSON focus, but still decent context
-const MAX_SNIPPET_SIZE = 4000;
+const MAX_SNIPPET_SIZE = 50000;
+
+// --- Define Valid Enum Values ---
+const VALID_CATEGORIES = new Set([
+    "Code Smell", "Bad Practice", "Potential Bug", "Security Vulnerability",
+    "Performance Issue", "Readability", "Dead Code", "Unknown" // Add Unknown as fallback
+]);
+const VALID_SEVERITIES = new Set(["High", "Medium", "Low", "Informational"]);
+const DEFAULT_SEVERITY = "Informational";
+const DEFAULT_CATEGORY = "Unknown";
 
 function isRelevantFile(filePath, fileSize) {
-    // (Keep this function as before)
-    if (!filePath || EXCLUDED_FILES.has(filePath.toLowerCase())) {
+    // (Keep as before)
+     if (!filePath || EXCLUDED_FILES.has(filePath.toLowerCase())) {
         return false;
     }
     if (fileSize > MAX_FILE_SIZE_BYTES) {
@@ -40,305 +50,294 @@ function isRelevantFile(filePath, fileSize) {
     if (parts.some(part => EXCLUDED_DIRS.has(part.toLowerCase()))) {
         return false;
     }
-    const extension = parts[parts.length - 1].includes('.')
-        ? '.' + parts[parts.length - 1].split('.').pop().toLowerCase()
-        : parts[parts.length - 1].toLowerCase(); // Handle files without extensions like 'Dockerfile'
-    // Special check for extensionless files like Dockerfile, Makefile
-    if (!parts[parts.length - 1].includes('.') && RELEVANT_EXTENSIONS.has(parts[parts.length - 1].toLowerCase())) {
-        return true;
+    const lowerCasePathEnd = parts[parts.length - 1].toLowerCase();
+    const extension = lowerCasePathEnd.includes('.')
+        ? '.' + lowerCasePathEnd.split('.').pop()
+        : lowerCasePathEnd;
+    if (!lowerCasePathEnd.includes('.') && RELEVANT_EXTENSIONS.has(extension)) {
+        return true; // Handle extensionless relevant files like Dockerfile
     }
     return RELEVANT_EXTENSIONS.has(extension);
 }
 
-
-// --- Define Expected JSON Structure ---
-/*
-Example Output for a single file analysis:
-{
-  "filePath": "src/utils/helpers.js",
-  "status": "analyzed", // "analyzed", "skipped", "error"
-  "summary": "Identified 1 potential bug and 2 readability issues.", // Brief LLM summary
-  "issues": [
-    {
-      "category": "Potential Bug", // "Code Smell", "Bad Practice", "Potential Bug", "Security Vulnerability", "Performance Issue", "Readability", "Dead Code"
-      "severity": "Medium", // "High", "Medium", "Low", "Informational"
-      "description": "Potential null pointer risk if 'user.profile' is null.",
-      "explanation": "Accessing 'user.profile.name' without checking if 'user.profile' exists can lead to runtime errors.",
-      "suggestion": "Use optional chaining ('user.profile?.name') or add a null check.",
-      "code_snippet": "const name = user.profile.name;" // Relevant snippet if possible
-    },
-    {
-       "category": "Readability",
-       "severity": "Low",
-       "description": "Function 'procDat' has unclear naming.",
-       "explanation": "Short, abbreviated names make the code harder to understand.",
-       "suggestion": "Rename the function to something more descriptive, like 'processUserData'.",
-       "code_snippet": "function procDat(data) { ... }"
+// --- Validation and Sanitization Helper ---
+// Correct the githubUrl construction
+function validateAndSanitizeAnalysis(parsedJson, filePath, owner, repo, branch) { // Use the 'branch' argument
+    if (!parsedJson || typeof parsedJson !== 'object') {
+        throw new Error("Parsed result is not an object.");
     }
-  ],
-  "error_message": null, // Populated if status is "error"
-  "skip_reason": null // Populated if status is "skipped"
-}
 
-If no issues are found:
-{
-  "filePath": "src/config/constants.js",
-  "status": "analyzed",
-  "summary": "No significant code quality issues identified in this snippet.",
-  "issues": [],
-  "error_message": null,
-  "skip_reason": null
-}
+    const sanitized = {
+        filePath: filePath,
+        status: "analyzed",
+        summary: typeof parsedJson.summary === 'string' ? parsedJson.summary : "Summary not provided.",
+        issues: [],
+        // *** FIX HERE: Use the 'branch' argument passed to the function ***
+        githubUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${filePath}`,
+        error_message: null,
+        skip_reason: null
+    };
 
-If skipped:
-{
-    "filePath": "large_file.bin",
-    "status": "skipped",
-    "summary": null,
-    "issues": [],
-    "error_message": null,
-    "skip_reason": "File size exceeds limit"
-}
-*/
+    if (!Array.isArray(parsedJson.issues)) {
+        console.warn(`Issues field is not an array for ${filePath}. Setting to empty array.`);
+        parsedJson.issues = [];
+    }
 
-async function analyzeRepository(owner, repo, accessToken) {
+    parsedJson.issues.forEach((issue, index) => {
+        if (typeof issue !== 'object' || issue === null) {
+            console.warn(`Issue at index ${index} for ${filePath} is not an object. Skipping.`);
+            return;
+        }
+
+        const sanitizedIssue = {};
+
+        // Validate and sanitize category
+        sanitizedIssue.category = typeof issue.category === 'string' && VALID_CATEGORIES.has(issue.category)
+            ? issue.category
+            : DEFAULT_CATEGORY;
+        if (sanitizedIssue.category === DEFAULT_CATEGORY && typeof issue.category === 'string') {
+             console.warn(`Invalid category "${issue.category}" in ${filePath}, issue ${index}. Using default "${DEFAULT_CATEGORY}".`);
+        }
+
+        // Validate and sanitize severity
+        sanitizedIssue.severity = typeof issue.severity === 'string' && VALID_SEVERITIES.has(issue.severity)
+            ? issue.severity
+            : DEFAULT_SEVERITY;
+         if (sanitizedIssue.severity === DEFAULT_SEVERITY && typeof issue.severity === 'string') {
+             console.warn(`Invalid severity "${issue.severity}" in ${filePath}, issue ${index}. Using default "${DEFAULT_SEVERITY}".`);
+         }
+
+        // Ensure required string fields exist
+        sanitizedIssue.description = typeof issue.description === 'string' ? issue.description : "Description not provided.";
+        sanitizedIssue.explanation = typeof issue.explanation === 'string' ? issue.explanation : "Explanation not provided.";
+
+        // Handle optional fields
+        sanitizedIssue.suggestion = typeof issue.suggestion === 'string' ? issue.suggestion : null;
+        sanitizedIssue.code_snippet = typeof issue.code_snippet === 'string' ? issue.code_snippet : null;
+
+        // Simple check for extraneous fields like the 'null' example
+        const allowedKeys = new Set(['category', 'severity', 'description', 'explanation', 'suggestion', 'code_snippet']);
+        Object.keys(issue).forEach(key => {
+            if (!allowedKeys.has(key)) {
+                console.warn(`Unexpected key "${key}" found in issue ${index} for ${filePath}. Ignoring.`);
+            }
+        });
+
+
+        sanitized.issues.push(sanitizedIssue);
+    });
+
+    return sanitized;
+}
+// --- End Helper ---
+
+
+// Modify function signature to accept branchName and commitSha
+async function analyzeRepository(owner, repo, branchName, commitSha, accessToken) {
     if (!geminiService.isGeminiAvailable) {
-        throw new AppError(
-            "Gemini API key not configured. Analysis unavailable.",
-            503
-        );
+        throw new AppError("Gemini API key not configured.", 503);
     }
+    console.log(`Starting analysis for ${owner}/${repo} at commit ${commitSha.substring(0,7)} on branch ${branchName}`);
 
-    console.log(`Starting analysis for ${owner}/${repo}`);
-    let defaultBranch;
-    try {
-        defaultBranch = await githubService.getRepoDefaultBranch(owner, repo, accessToken);
-        console.log(`Default branch: ${defaultBranch}`);
-    } catch (error) {
-        throw new AppError(`Failed to get default branch for ${owner}/${repo}: ${error.message}`, error.statusCode || 500);
-    }
-
+    // No need to fetch default branch info again, it's passed in
     let tree;
     try {
-        tree = await githubService.getRepoTree(owner, repo, defaultBranch, accessToken);
-        console.log(`Fetched tree with ${tree.length} items.`);
+        // Fetch tree for the specific commit SHA
+        tree = await githubService.getRepoTree(owner, repo, commitSha, accessToken);
+        console.log(`Fetched tree for commit ${commitSha} with ${tree.length} items.`);
     } catch (error) {
-        throw new AppError(`Failed to get repository tree for ${owner}/${repo}: ${error.message}`, error.statusCode || 500);
+         // If tree fetch fails for the specific commit, it's a critical error for this scan
+         console.error(`Failed to get repository tree for commit ${commitSha}: ${error.message}`);
+        throw new AppError(`Failed to get repository tree for commit ${commitSha}: ${error.message}`, error.statusCode || 500);
     }
 
     const relevantFiles = tree
         .filter(item => item.type === 'blob' && isRelevantFile(item.path, item.size))
         .slice(0, MAX_FILES_TO_ANALYZE);
-
-    console.log(`Found ${relevantFiles.length} relevant files to analyze (up to ${MAX_FILES_TO_ANALYZE}).`);
+    console.log(`Found ${relevantFiles.length} relevant files in commit ${commitSha}.`);
 
     if (relevantFiles.length === 0) {
-        // Return a structured response even if no files are analyzed
-        return {
-             summary: {
-                 owner,
-                 repo,
-                 defaultBranch,
-                 filesAnalyzed: 0,
-                 filesSkipped: 0,
-                 filesErrored: 0,
-                 maxFilesAttempted: MAX_FILES_TO_ANALYZE,
-                 message: "No relevant code files found to analyze based on current filters.",
-             },
+         // Still construct a summary object, even if no files analyzed
+         const emptyAnalysis = {
+             summary: { owner, repo, defaultBranch: branchName, commitSha, filesAnalyzed: 0, filesSkipped: 0, filesErrored: 0, maxFilesAttempted: MAX_FILES_TO_ANALYZE, message: "No relevant code files found in this commit.", analysisTimestamp: new Date().toISOString() },
              fileAnalyses: []
          };
+          // Attempt to save this 'empty' scan result so we don't re-scan this commit
+         try {
+              const scanDoc = new Scan({
+                  repoOwner: owner,
+                  repoName: repo,
+                  branchName: branchName,
+                  commitSha: commitSha,
+                  summary: emptyAnalysis.summary,
+                  fileAnalyses: emptyAnalysis.fileAnalyses,
+                  scanTimestamp: new Date() // Explicitly set scan timestamp
+              });
+              await scanDoc.save();
+              console.log(`Saved empty scan record for commit ${commitSha}`);
+              return scanDoc.toObject(); // Return the saved document data
+          } catch (dbError) {
+              console.error(`Error saving empty scan record for commit ${commitSha}:`, dbError);
+              // If saving fails, still return the basic analysis data
+              return emptyAnalysis;
+          }
     }
 
-    const fileAnalyses = []; // Store JSON results for each file
     let filesAnalyzedCount = 0;
     let filesSkippedCount = 0;
     let filesErroredCount = 0;
 
+
     const analysisPromises = relevantFiles.map(async (file) => {
-        console.log(`Processing file: ${file.path}`);
-        let content;
-        try {
-            content = await githubService.getFileContent(owner, repo, file.sha, accessToken);
-            if (content === null) {
-                console.log(`Skipping content fetch for ${file.path} (likely size or transient issue).`);
-                return {
-                    filePath: file.path,
-                    status: "skipped",
-                    summary: null,
-                    issues: [],
-                    error_message: null,
-                    skip_reason: "Could not retrieve content (possibly too large, removed, or binary)."
-                };
-            }
-        } catch (error) {
-            console.error(`Error fetching content for ${file.path}: ${error.message}`);
-            return {
-                filePath: file.path,
-                status: "error",
-                summary: null,
-                issues: [],
-                error_message: `Failed to fetch content: ${error.message}`,
-                skip_reason: null
-            };
-        }
+        // (Keep file fetching and binary checks as before)
+         console.log(`Processing file: ${file.path}`);
+         let content;
+         try {
+             content = await githubService.getFileContent(owner, repo, file.sha, accessToken);
+             if (content === null) {
+                 console.log(`Skipping content fetch for ${file.path}.`);
+                 return { filePath: file.path, status: "skipped", summary: null, issues: [], error_message: null, skip_reason: "Could not retrieve content." };
+             }
+         } catch (error) {
+             console.error(`Error fetching content for ${file.path}: ${error.message}`);
+             return { filePath: file.path, status: "error", summary: null, issues: [], error_message: `Failed to fetch content: ${error.message}`, skip_reason: null };
+         }
+         if (content.includes('\uFFFD')) {
+             console.log(`Skipping potentially binary file: ${file.path}`);
+             return { filePath: file.path, status: "skipped", summary: null, issues: [], error_message: null, skip_reason: "Detected non-text content." };
+         }
 
-        // Basic check to skip binary-like content
-        if (content.includes('\uFFFD')) {
-            console.log(`Skipping potentially binary file: ${file.path}`);
-            return {
-                filePath: file.path,
-                status: "skipped",
-                summary: null,
-                issues: [],
-                error_message: null,
-                skip_reason: "Detected potentially non-text content."
-            };
-        }
-
-        // --- New Prompt for JSON Output ---
+        // --- Refined Prompt ---
         const fileAnalysisPrompt = `
 Analyze the following code snippet from the file \`${file.path}\` for code quality issues.
 
-Focus specifically on identifying:
-*   Code Smells (e.g., Long Methods, Duplication)
-*   Bad Practices (e.g., Magic Numbers, Deep Nesting)
-*   Potential Bugs (e.g., Null Risks, Off-by-one)
-*   Security Vulnerabilities (e.g., XSS hints, Hardcoded Secrets)
-*   Performance Issues (e.g., Inefficient Loops)
-*   Readability/Maintainability (e.g., Poor Naming, Complexity)
-*   Potential Dead Code
+Focus on: Code Smells, Bad Practices, Potential Bugs, Security Vulnerabilities, Performance Issues, Readability/Maintainability, Potential Dead Code.
 
-**Output Format Instructions:**
-*   Respond **ONLY** with a valid JSON object. Do **NOT** include any explanatory text before or after the JSON.
-*   The JSON object should strictly follow this structure:
+**VERY IMPORTANT OUTPUT FORMAT INSTRUCTIONS:**
+*   You **MUST** respond **ONLY** with a single, valid JSON object.
+*   **DO NOT** include any text, explanations, apologies, or markdown formatting (like \`\`\`json) before or after the JSON object.
+*   The JSON object **MUST** strictly follow this structure:
     \`\`\`json
     {
-      "filePath": "string", // The file path provided (\`${file.path}\`)
-      "status": "analyzed", // Always "analyzed" if successful
-      "summary": "string", // A brief one-sentence summary of findings (e.g., "Found 2 medium issues.", "No major issues found.")
-      "issues": [ // An array of issue objects. Empty array ([]) if no issues found.
+      "filePath": "string", // The file path: "${file.path}"
+      "status": "analyzed",
+      "summary": "string", // Brief one-sentence summary of findings.
+      "issues": [ // Array of issue objects. Empty array ([]) if no issues found.
         {
-          "category": "string", // Must be one of: "Code Smell", "Bad Practice", "Potential Bug", "Security Vulnerability", "Performance Issue", "Readability", "Dead Code"
-          "severity": "string", // Must be one of: "High", "Medium", "Low", "Informational"
-          "description": "string", // Concise description of the issue.
-          "explanation": "string", // Why this is a problem.
-          "suggestion": "string | null", // Brief suggestion for improvement, or null.
-          "code_snippet": "string | null" // The relevant line(s) of code from the snippet below where the issue occurs, if identifiable. Otherwise null. Keep it short.
+          "category": "string", // MUST be one of: "Code Smell", "Bad Practice", "Potential Bug", "Security Vulnerability", "Performance Issue", "Readability", "Dead Code"
+          "severity": "string", // MUST be one of: "High", "Medium", "Low", "Informational"
+          "description": "string", // Concise description.
+          "explanation": "string", // Why it's a problem.
+          "suggestion": "string | null", // Brief suggestion or null.
+          "code_snippet": "string | null" // Relevant code line(s) or null. Keep short.
         }
       ],
-      "error_message": null, // Always null for successful analysis
-      "skip_reason": null // Always null for successful analysis
+      "error_message": null,
+      "skip_reason": null
     }
     \`\`\`
-*   Ensure the "category" and "severity" fields use **only** the specified values.
+*   Ensure the "category" and "severity" fields use **ONLY** the exact values listed above.
 *   If no significant issues are found, return the JSON with an empty "issues" array and an appropriate "summary".
-*   Analyze the code snippet provided below.
+*   Base your analysis only on the provided snippet.
 
 Code Snippet (\`${file.path}\`):
 \`\`\`
 ${content.substring(0, MAX_SNIPPET_SIZE)}
 \`\`\`
 `;
-        // --- End New Prompt ---
+        // --- End Refined Prompt ---
 
         try {
-            // Call Gemini service (already rate-limited)
             const rawAnalysisResult = await geminiService.generateContent(fileAnalysisPrompt);
-
-            // --- Attempt to Parse JSON ---
             let analysisJson;
+
             try {
-                // Clean potential markdown code fences sometimes added by LLMs
-                const cleanedResult = rawAnalysisResult
-                    .replace(/^```json\s*/, '')
-                    .replace(/\s*```$/, '')
-                    .trim();
+                // 1. Aggressively extract JSON block
+                const jsonMatch = rawAnalysisResult.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) throw new Error("No JSON object found.");
+                let potentialJson = jsonMatch[0];
+                 try { potentialJson = jsonRepair(potentialJson); } catch (repairError) { console.warn(`json-repair failed for ${file.path}: ${repairError.message}. Attempting direct parse.`); }
+                 analysisJson = JSON.parse(potentialJson);
 
-                analysisJson = JSON.parse(cleanedResult);
+                // Pass owner, repo, branchName to validation helper
+                const validatedData = validateAndSanitizeAnalysis(analysisJson, file.path, owner, repo, branchName); // Use branchName here for URL
 
-                // Basic validation (can be expanded)
-                if (!analysisJson.filePath || !analysisJson.status || !Array.isArray(analysisJson.issues)) {
-                     throw new Error("Parsed JSON is missing required fields.");
-                }
-                // Ensure filePath matches (sometimes LLMs might hallucinate)
-                analysisJson.filePath = file.path;
-                analysisJson.status = "analyzed"; // Force status
-                analysisJson.error_message = null;
-                analysisJson.skip_reason = null;
+                console.log(`Successfully processed analysis for ${file.path}`);
+                return validatedData;
 
-                 // Add github link to the analysis object
-                 analysisJson.githubUrl = `https://github.com/${owner}/${repo}/blob/${defaultBranch}/${file.path}`;
-
-
-                console.log(`Successfully parsed analysis for ${file.path}`);
-                return analysisJson;
-
-            } catch (parseError) {
-                console.error(`Error parsing JSON response for ${file.path}: ${parseError.message}`);
-                console.error("Raw LLM Output:", rawAnalysisResult); // Log the problematic output
-                return {
-                    filePath: file.path,
-                    status: "error",
-                    summary: null,
-                    issues: [],
-                    error_message: `LLM returned invalid JSON: ${parseError.message}`,
-                    skip_reason: null,
-                    rawOutput: rawAnalysisResult // Optionally include raw output for debugging
-                };
+            } catch (processError) {
+                 console.error(`Error processing analysis response for ${file.path}: ${processError.message}`);
+                 console.error("Raw LLM Output:", rawAnalysisResult);
+                return { filePath: file.path, status: "error", summary: null, issues: [], error_message: `Failed to process LLM response: ${processError.message}`, skip_reason: null, rawOutput: rawAnalysisResult };
             }
-            // --- End JSON Parsing ---
-
         } catch (error) {
-            console.error(`Error analyzing ${file.path} with Gemini: ${error.message}`);
-            // Propagate critical errors like rate limits or auth failures
-            if (error.statusCode === 429 || error.statusCode === 401 || error.statusCode === 403 || error.statusCode === 503) {
-                 throw error; // Re-throw critical errors to stop the process
-             }
-             // Return an error structure for non-critical errors
-             return {
-                filePath: file.path,
-                status: "error",
-                summary: null,
-                issues: [],
-                error_message: `Analysis failed: ${error.message}`,
-                skip_reason: null
-            };
+             console.error(`Error analyzing ${file.path} with Gemini: ${error.message}`);
+             if (error instanceof AppError && (error.statusCode === 429 || error.statusCode === 401 || error.statusCode === 403 || error.statusCode === 503)) { throw error; }
+             return { filePath: file.path, status: "error", summary: null, issues: [], error_message: `Gemini API call failed: ${error.message}`, skip_reason: null };
         }
     });
 
-    // Wait for all file analyses to complete
     const results = await Promise.all(analysisPromises);
+    const fileAnalysesResult = []; // Use a different name
 
-    // Update counts based on results
     results.forEach(result => {
-        if (result.status === 'analyzed') filesAnalyzedCount++;
-        else if (result.status === 'skipped') filesSkippedCount++;
-        else if (result.status === 'error') filesErroredCount++;
-        // Add the result (JSON object) to the final list
-        fileAnalyses.push(result);
+        const currentResult = result || { status: 'error', error_message: 'Analysis promise resolved unexpectedly null/undefined' };
+        if (currentResult.status === 'analyzed') filesAnalyzedCount++;
+        else if (currentResult.status === 'skipped') filesSkippedCount++;
+        else if (currentResult.status === 'error') filesErroredCount++;
+        fileAnalysesResult.push(currentResult);
     });
 
-
-    console.log("Constructing final analysis object...");
-
-    const finalAnalysis = {
-        summary: {
-            owner,
-            repo,
-            defaultBranch, // Include default branch for link construction later
-            filesAnalyzed: filesAnalyzedCount,
-            filesSkipped: filesSkippedCount,
-            filesErrored: filesErroredCount,
-            maxFilesAttempted: MAX_FILES_TO_ANALYZE,
-            analysisTimestamp: new Date().toISOString(),
-            // You could add total issue counts here by iterating through fileAnalyses
-        },
-        fileAnalyses: fileAnalyses // Array of the JSON objects for each file
+    console.log("Constructing final analysis object for saving...");
+    const finalAnalysisSummary = {
+        owner,
+        repo,
+        defaultBranch: branchName, // Use the scanned branch name
+        commitSha: commitSha,      // Include the commit SHA in the summary
+        filesAnalyzed: filesAnalyzedCount,
+        filesSkipped: filesSkippedCount,
+        filesErrored: filesErroredCount,
+        maxFilesAttempted: relevantFiles.length,
+        analysisTimestamp: new Date().toISOString(), // Timestamp of when analysis finished
     };
 
-    console.log(`Analysis complete for ${owner}/${repo}`);
-    return finalAnalysis; // Return the structured JSON analysis
+    // --- Save to MongoDB ---
+    try {
+        const scanDocument = new Scan({
+            repoOwner: owner,
+            repoName: repo,
+            branchName: branchName,
+            commitSha: commitSha,
+            summary: finalAnalysisSummary,
+            fileAnalyses: fileAnalysesResult, // Save the detailed file results
+            scanTimestamp: new Date() // Record DB save time
+        });
+        const savedScan = await scanDocument.save();
+        console.log(`Successfully saved scan for commit ${commitSha} to MongoDB.`);
+        return savedScan.toObject(); // Return the saved data as a plain object
+    } catch (dbError) {
+        // Handle potential unique key violation (should be caught by controller check, but good fallback)
+         if (dbError.code === 11000) {
+             console.warn(`Attempted to save duplicate scan for commit ${commitSha}. This should have been caught earlier.`);
+             // Optionally, fetch and return the existing scan again here
+             const existingScan = await Scan.findOne({ repoOwner: owner, repoName: repo, branchName: branchName, commitSha: commitSha }).lean();
+             if (existingScan) {
+                 existingScan.isCached = true; // Mark as cached explicitly
+                 return existingScan;
+             }
+         }
+        console.error(`Error saving scan result for commit ${commitSha} to MongoDB:`, dbError);
+        // If saving fails, still return the analysis data, but maybe add an error flag/message
+        // Or throw an AppError to signal the failure to the controller
+         throw new AppError(`Failed to save scan results: ${dbError.message}`, 500);
+         // Alternatively, return the data without saving:
+         // return { summary: finalAnalysisSummary, fileAnalyses: fileAnalysesResult, saveError: dbError.message };
+    }
+    // --- End Save ---
 }
+
+// Remove the outer scope let declarations for owner, repo, defaultBranch
+// They are now passed as arguments where needed.
 
 module.exports = {
     analyzeRepository,
