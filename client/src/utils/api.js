@@ -1,10 +1,12 @@
+// src/utils/api.js
 import axios from "axios";
-const VITE_BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
-import sampleData from "../data/gittree.json";
 
-const axiosInstance = axios.create({
-  baseURL: VITE_BASE_URL,
-  withCredentials: true,
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+console.log("API base URL →", BASE_URL);  // should log http://localhost:5001
+
+export const axiosInstance = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: true,  // if you need cookies/sessions
 });
 
 export const getUserRepos = async () => {
