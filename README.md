@@ -105,6 +105,8 @@
 
 ---
 
+test
+
 - **Client (React Frontend):**
   - **assets:** Stores static resources like images and global styles.
   - **components:** Contains reusable UI components (e.g., Navbar, Git Tree visualization, Dashboard panels, Team cards) that are assembled into pages.
