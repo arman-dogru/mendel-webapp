@@ -1,0 +1,121 @@
+.card-bg {
+  background-color: rgba(17, 24, 39, 0.7);
+}
+
+.bg-cardBg {
+  background-color: rgba(31, 41, 55, 0.8);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 114, 128, 0.5);
+  border-radius: 20px;
+}
+
+@keyframes custom-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: custom-spin 1s linear infinite;
+}
+
+button {
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(31, 41, 55, 0.95) !important;
+  border: 1px solid rgba(75, 85, 99, 0.8) !important;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value {
+  color: #e5e7eb !important;
+}
+
+@media (max-width: 640px) {
+  .card-bg {
+    padding: 1rem;
+  }
+
+  button {
+    min-height: 28px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.summary-stat {
+  transition: transform 0.2s ease;
+}
+
+.summary-stat:hover {
+  transform: scale(1.05);
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke-opacity: 0.3;
+}
+
+.recharts-legend-item-text {
+  color: #e5e7eb !important;
+}
+
+@media (max-width: 768px) {
+  .recharts-text.recharts-label {
+    font-size: 0.7rem;
+  }
+}

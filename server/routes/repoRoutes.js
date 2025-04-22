@@ -7,6 +7,7 @@ const {
   getRepoIssues,
   getRepoPR,
   getRepoContributors,
+  getRepoMetrics,
 } = require("../controllers/repoController");
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get("/:owner/:repo/merges", checkAuth, getRepoMerges);
 router.get("/:owner/:repo/issues", checkAuth, getRepoIssues);
 router.get("/:owner/:repo/pull-requests", checkAuth, getRepoPR);
 router.get("/:owner/:repo/contributors", checkAuth, getRepoContributors);
+router.get("/:owner/:repo/metrics", checkAuth, getRepoMetrics);
 
 module.exports = router;
