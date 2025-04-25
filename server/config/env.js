@@ -8,5 +8,5 @@ module.exports = {
   SESSION_SECRET: process.env.SESSION_SECRET,
   PORT: process.env.PORT,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-  MONGODB_URI: process.env.MONGODB_URI, // NEW
+  MONGODB_URI: process.env.MONGODB_URI,
 };

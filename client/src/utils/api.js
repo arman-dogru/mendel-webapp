@@ -2,11 +2,11 @@
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
-console.log("API base URL →", BASE_URL);  // should log http://localhost:5001
+console.log("API base URL →", BASE_URL); // should log http://localhost:5001
 
 export const axiosInstance = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,  // if you need cookies/sessions
+  withCredentials: true, // if you need cookies/sessions
 });
 
 export const getUserRepos = async () => {
@@ -102,10 +102,10 @@ export const getRepoPRs = async (owner, repo, branch = "master") => {
 export const scanRepository = async (owner, repo) => {
   try {
     const response = await axiosInstance.post(`/api/scan/${owner}/${repo}`);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error("Error scanning repository:", error);
-    
+
     if (error.response && error.response.data && error.response.data.message) {
       throw new Error(error.response.data.message);
     }
@@ -118,13 +118,13 @@ export const getRepoContributors = async (owner, repo) => {
     const response = await axiosInstance.get(
       `/api/repos/${owner}/${repo}/contributors`
     );
+    console.log("Contibutors resposne : ", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching contributors:", error);
     throw error;
   }
 };
-
 
 /**
  * Fetches a summary list of past scans for a repository.
@@ -134,7 +134,9 @@ export const getRepoContributors = async (owner, repo) => {
  */
 export const getScanHistory = async (owner, repo) => {
   try {
-    const response = await axiosInstance.get(`/api/scan/${owner}/${repo}/history`);
+    const response = await axiosInstance.get(
+      `/api/scan/${owner}/${repo}/history`
+    );
     return response.data;
   } catch (error) {
     console.error(`Error fetching scan history for ${owner}/${repo}:`, error);
@@ -159,6 +161,18 @@ export const getSpecificScan = async (scanId) => {
     if (error.response && error.response.data && error.response.data.message) {
       throw new Error(error.response.data.message);
     }
+    throw error;
+  }
+};
+
+export const getRepoMetrics = async (owner, repo) => {
+  try {
+    const response = await axiosInstance.get(
+      `/api/repos/${owner}/${repo}/metrics`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching repository metrics:", error);
     throw error;
   }
 };
