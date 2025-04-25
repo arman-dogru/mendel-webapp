@@ -45,16 +45,16 @@ button:active {
   transform: translateY(0);
 }
 
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background-color: rgba(31, 41, 55, 0.95) !important;
-  border: 1px solid rgba(75, 85, 99, 0.8) !important;
+.recharts-custom-tooltip.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(31, 41, 55, 0.95);
+  border: 1px solid rgba(75, 85, 99, 0.8);
   border-radius: 4px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-.recharts-tooltip-item-name,
-.recharts-tooltip-item-value {
-  color: #e5e7eb !important;
+.recharts-custom-tooltip .recharts-tooltip-item-name,
+.recharts-custom-tooltip .recharts-tooltip-item-value {
+  color: #e5e7eb;
 }
 
 @media (max-width: 640px) {
@@ -69,8 +69,14 @@ button:active {
   }
 }
 
+:root {
+  --fade-duration: 0.5s;
+  --slide-duration: 0.5s;
+  --slide-distance: 20px;
+}
+
 .fade-in {
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn var(--fade-duration) ease-in;
 }
 
 @keyframes fadeIn {
@@ -83,12 +89,12 @@ button:active {
 }
 
 .slide-in {
-  animation: slideIn 0.5s ease-out;
+  animation: slideIn var(--slide-duration) ease-out;
 }
 
 @keyframes slideIn {
   from {
-    transform: translateX(-20px);
+    transform: translateX(calc(-1 * var(--slide-distance)));
     opacity: 0;
   }
   to {
@@ -111,11 +117,24 @@ button:active {
 }
 
 .recharts-legend-item-text {
-  color: #e5e7eb !important;
+  color: #e5e7eb;
 }
 
 @media (max-width: 768px) {
   .recharts-text.recharts-label {
     font-size: 0.7rem;
   }
+}
+
+.reduce-motion .fade-in,
+.reduce-motion .slide-in {
+  animation: none;
+}
+
+.reduce-motion .summary-stat {
+  transition: none;
+}
+
+.reduce-motion button {
+  transition: none;
 }

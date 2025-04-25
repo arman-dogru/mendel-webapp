@@ -17,7 +17,7 @@ const DashboardPage = () => {
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get("tab") || "PRs";
+  const initialTab = queryParams.get("tab") || "Branches";
   const validTabs = ["Dashboards", "Branches", "PRs", "Issues", "Analysis"];
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialTab) ? initialTab : "Branches"
@@ -30,13 +30,10 @@ const DashboardPage = () => {
       setSelectedRepo(repo);
     }
     if (!repo) {
-      // Redirect if no repo context is available (e.g., direct navigation)
       navigate("/homepage", { replace: true });
     }
   }, [repo, selectedRepo, setSelectedRepo, navigate]);
 
-  // Update URL when activeTab changes internally (e.g. default setting)
-  // Or when navigating back/forward causing tab state to change
   useEffect(() => {
     const currentParams = new URLSearchParams(location.search);
     if (currentParams.get("tab") !== activeTab) {
@@ -61,7 +58,7 @@ const DashboardPage = () => {
         return <GitTreeComponent repo={repo} />;
       case "Issues":
         return <Issues repo={repo} />;
-      case "Analysis": // Add case for Analysis
+      case "Analysis":
         return <CodeAnalysisComponent repo={repo} />;
       case "PRs":
         return <PRs repo={repo} />;
@@ -79,7 +76,6 @@ const DashboardPage = () => {
         );
 
       default:
-        // Should not happen due to initial state logic, but good fallback
         return (
           <Box sx={{ p: 3 }}>
             <Typography sx={{ color: "text.secondary" }}>
