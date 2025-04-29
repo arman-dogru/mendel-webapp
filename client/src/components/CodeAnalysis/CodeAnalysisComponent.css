@@ -1,0 +1,131 @@
+/* Responsive and Structural Styles */
+.dark-bg {
+  padding: 1rem;
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+}
+
+.card-bg {
+  background-color: var(--card-bg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Responsive Layout Adjustments */
+@media (min-width: 600px) {
+  .dark-bg {
+    padding: 2rem;
+  }
+}
+
+.Box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.Box > * {
+  flex: 1;
+}
+
+.Button {
+  background-color: var(--button-bg);
+}
+
+.Button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+/* Icon Alignment Fix (Based on First Screenshot) */
+.Stack {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.Chip {
+  margin: 0.25rem;
+}
+
+.Paper .Box {
+  padding: 1.5rem;
+  cursor: pointer;
+}
+
+.Paper .Box:hover {
+  background-color: var(--card-bg-hover);
+}
+
+.Collapse .Box {
+  padding: 2rem;
+  border-top: 1px solid var(--text-secondary);
+}
+
+.Box > .IconButton {
+  margin-right: 0.5rem;
+}
+
+.Box > .Typography {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive Grid for Dashboard */
+.Grid-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .Grid-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Ensure consistent spacing and alignment */
+.CardActionArea {
+  margin-bottom: 1rem;
+}
+
+.CardContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.CardContent > *:last-child {
+  padding-bottom: 1.5rem;
+}
+
+.pre {
+  background-color: #2d2d2d;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 100px;
+}
+
+/* Centering Loader */
+.Box > .CircularProgress {
+  display: flex;
+  justify-content: center;
+  padding: 5rem;
+}
