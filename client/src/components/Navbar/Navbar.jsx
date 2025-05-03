@@ -5,15 +5,21 @@ import {
   Button,
   IconButton,
   Box,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import { IoNotificationsOutline, IoSettingsOutline } from "react-icons/io5";
 import { FaUserCircle } from "react-icons/fa";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { logout } from "../../utils/api";
 import "./Navbar.css";
 
 function Navbar({ setActiveTab, activeTab, repo }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
 
   const basePath = repo
     ? `/dashboard/${encodeURIComponent(repo)}`
@@ -26,19 +32,48 @@ function Navbar({ setActiveTab, activeTab, repo }) {
     { label: "Issues", path: basePath, tab: "Issues" },
     { label: "Teams", path: basePath, tab: "Teams" },
     { label: "Analysis", path: basePath, tab: "Analysis" },
-
   ];
 
   const handleNavigation = (path, tab) => {
     setActiveTab(tab);
     // Update URL query parameter when tab changes
-     const currentParams = new URLSearchParams(location.search);
-     currentParams.set('tab', tab);
-    navigate(`${location.pathname}?${currentParams.toString()}`, { replace: true });
+    const currentParams = new URLSearchParams(location.search);
+    currentParams.set("tab", tab);
+    navigate(`${location.pathname}?${currentParams.toString()}`, {
+      replace: true,
+    });
   };
+
   const handleLogoClick = () => {
     navigate("/homepage");
   };
+
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      handleClose();
+      await logout();
+      navigate("/", { replace: true });
+    } catch (error) {
+      alert(
+        "Logout failed: " + (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  const handleProfileMenuClick = () => {
+    handleClose();
+    // Navigate to profile page
+    navigate("#");
+  };
+
   return (
     <AppBar
       position="static"
@@ -68,21 +103,21 @@ function Navbar({ setActiveTab, activeTab, repo }) {
             </Typography>
           </Box>
           <Box className="flex items-center space-x-2 ml-4">
-             {navLinks.map((link) => (
-               <Button
-                 key={link.label}
-                 onClick={() => handleNavigation(link.path, link.tab)}
-                 sx={{
-                   color: activeTab === link.tab ? "#EF4444" : "#9CA3AF",
-                   fontWeight: "medium",
-                   textTransform: "none",
-                   "&:hover": { color: "#FFFFFF" },
-                 }}
-               >
-                 {link.label}
-               </Button>
-             ))}
-           </Box>
+            {navLinks.map((link) => (
+              <Button
+                key={link.label}
+                onClick={() => handleNavigation(link.path, link.tab)}
+                sx={{
+                  color: activeTab === link.tab ? "#EF4444" : "#9CA3AF",
+                  fontWeight: "medium",
+                  textTransform: "none",
+                  "&:hover": { color: "#FFFFFF" },
+                }}
+              >
+                {link.label}
+              </Button>
+            ))}
+          </Box>
         </Box>
 
         {/* Right Section: Icons */}
@@ -93,9 +128,35 @@ function Navbar({ setActiveTab, activeTab, repo }) {
           <IconButton aria-label="Settings">
             <IoSettingsOutline className="text-gray-400 hover:text-white transition-colors duration-200" />
           </IconButton>
-          <IconButton aria-label="User profile">
+          <IconButton
+            aria-label="User profile"
+            onClick={handleProfileClick}
+            aria-controls={open ? "profile-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? "true" : undefined}
+          >
             <FaUserCircle className="text-gray-400 hover:text-white transition-colors duration-200" />
           </IconButton>
+          <Menu
+            id="profile-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            MenuListProps={{
+              "aria-labelledby": "profile-button",
+            }}
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+          >
+            <MenuItem onClick={handleProfileMenuClick}>Profile</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

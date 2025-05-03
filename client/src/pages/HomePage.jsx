@@ -19,6 +19,7 @@ function HomePage() {
   useEffect(() => {
     const checkAuthAndFetchRepos = async () => {
       try {
+        setLoading(true);
         const authenticated = await checkAuthStatus();
 
         if (!authenticated) {
@@ -27,10 +28,19 @@ function HomePage() {
         }
         setIsAuthenticated(true);
 
-        const data = await getUserRepos();
-        setRepos(data);
-        setFilteredRepos(data);
-        setLoading(false);
+        try {
+          const data = await getUserRepos();
+          setRepos(data);
+          setFilteredRepos(data);
+          setLoading(false);
+        } catch (repoError) {
+          // Check if we need to redirect to permissions page
+          if (repoError.redirectTo === "/repo-permissions") {
+            navigate("/repo-permissions");
+            return;
+          }
+          throw repoError;
+        }
       } catch (err) {
         setError("Failed to load repositories.");
         setError(handleApiError(err));
@@ -43,7 +53,7 @@ function HomePage() {
 
   useEffect(() => {
     const filtered = repos.filter((repo) =>
-      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
+      repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredRepos(filtered);
   }, [searchQuery, repos]);
