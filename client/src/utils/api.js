@@ -14,11 +14,12 @@ const apiClient = axios.create({
 export const checkAuthStatus = async () => {
   try {
     const response = await apiClient.get("/api/auth/check-auth/status");
-    return response.data.isAuthenticated;
+    // Return the full data object which now includes isAuthenticated and hasSetPermissions
+    return response.data;
   } catch (error) {
     console.error("Error checking auth status:", error);
-    // Assume not authenticated on error
-    return false;
+    // Return a default state indicating not authenticated on error
+    return { isAuthenticated: false, hasSetPermissions: false };
   }
 };
 
@@ -35,17 +36,21 @@ export const logout = async () => {
 
 export const getUserRepos = async () => {
   try {
-    const response = await apiClient.get("/api/auth/repos"); // Correct endpoint for user's repos
+    // This endpoint now potentially returns a 403 if permissions aren't set
+    const response = await apiClient.get("/api/auth/repos");
     return response.data;
   } catch (error) {
     console.error("Error fetching user repos:", error);
-    throw error;
+    // Check if the error indicates redirection is needed
+    if (error.response?.status === 403 && error.response?.data?.redirectTo) {
+       throw { ...error, redirectTo: error.response.data.redirectTo }; // Re-throw with redirection info
+    }
+    throw error; // Re-throw other errors
   }
 };
 
 export const getRepoBranches = async (owner, repo) => {
   try {
-    // Ensure owner and repo are correctly passed
     if (!owner || !repo) {
        throw new Error("Owner and repository name are required to fetch branches.");
     }
@@ -65,7 +70,7 @@ export const getRepoCommits = async (owner, repo, branch) => {
      }
      console.log(`API Call: Fetching commits for ${owner}/${repo}, branch ${branch}`);
      const response = await apiClient.get(`/api/repo/${owner}/${repo}/commits`, {
-       params: { branch }, // Send branch as query parameter
+       params: { branch },
      });
      return response.data;
    } catch (error) {
@@ -128,7 +133,6 @@ export const getRepoContributors = async (owner, repo) => {
          throw new Error("Owner and repository name are required to fetch contributors.");
       }
       console.log(`API Call: Fetching contributors for ${owner}/${repo}`);
-      // Corrected endpoint based on repoRoutes.js
       const response = await apiClient.get(`/api/repo/${owner}/${repo}/contributors`);
       return response.data;
   } catch (error) {
@@ -145,12 +149,10 @@ export const scanRepository = async (owner, repo) => {
          throw new Error("Owner and repository name are required to start scan.");
       }
      console.log(`API Call: Starting scan for ${owner}/${repo}`);
-     // Using apiClient and correct endpoint
      const response = await apiClient.post(`/api/scan/${owner}/${repo}`);
      return response.data;
    } catch (error) {
      console.error(`Error starting scan for ${owner}/${repo}:`, error);
-     // Keep simpler error handling for now, can enhance later
      throw error;
    }
 };
@@ -161,12 +163,10 @@ export const getScanHistory = async (owner, repo) => {
              throw new Error("Owner and repository name are required to get scan history.");
         }
         console.log(`API Call: Fetching scan history for ${owner}/${repo}`);
-        // Using apiClient and correct endpoint
         const response = await apiClient.get(`/api/scan/${owner}/${repo}/history`);
         return response.data;
     } catch (error) {
          console.error(`Error fetching scan history for ${owner}/${repo}:`, error);
-         // Keep simpler error handling
          throw error;
     }
 };
@@ -177,12 +177,55 @@ export const getSpecificScan = async (scanId) => {
             throw new Error("Scan ID is required.");
         }
         console.log(`API Call: Fetching specific scan with ID: ${scanId}`);
-         // Using apiClient and correct endpoint
         const response = await apiClient.get(`/api/scan/${scanId}`);
         return response.data;
     } catch (error) {
          console.error(`Error fetching scan ${scanId}:`, error);
-         // Keep simpler error handling
          throw error;
     }
+};
+
+// --- Metrics & Permissions API (Ensure these use apiClient) ---
+
+export const getRepoMetrics = async (owner, repo) => {
+  try {
+     if (!owner || !repo) {
+         throw new Error("Owner and repository name are required to fetch metrics.");
+      }
+      console.log(`API Call: Fetching metrics for ${owner}/${repo}`);
+      // *** FIXED: Use apiClient and correct endpoint ***
+      const response = await apiClient.get(
+          `/api/repo/${owner}/${repo}/metrics`
+      );
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching repository metrics for ${owner}/${repo}:`, error);
+    throw error;
+  }
+};
+
+export const getAllUserRepos = async () => {
+  try {
+     console.log(`API Call: Fetching all user repos for permissions`);
+     // *** FIXED: Use apiClient ***
+    const response = await apiClient.get("/api/auth/all-repos");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all repositories:", error);
+    throw error;
+  }
+};
+
+export const saveUserRepoPermissions = async (repositories) => {
+  try {
+     console.log(`API Call: Saving repo permissions`, repositories);
+     // *** FIXED: Use apiClient ***
+    const response = await apiClient.post("/api/auth/repo-permissions", {
+      repositories, // Send data in the request body
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error saving repository permissions:", error);
+    throw error;
+  }
 };

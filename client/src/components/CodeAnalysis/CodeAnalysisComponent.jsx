@@ -51,7 +51,6 @@ const getCategoryIcon = (category) => {
   const iconProps = {
     fontSize: "small",
     className: category === "Readability" ? "text-white" : "",
-    className: "text-white",
   };
   switch (category) {
     case "Potential Bug":
