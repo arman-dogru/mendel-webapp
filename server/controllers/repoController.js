@@ -3,10 +3,9 @@
 const axios = require("axios");
 const { decryptData } = require("../utils/crypto");
 const { AppError } = require("../utils/errorHandler");
-const githubAppService = require('../services/githubAppService'); // Import App Service
+const githubAppService = require('../services/githubAppService'); // Import App Service (Though not used in this file after resolution)
 
 // --- Helper for GitHub API Requests (USING USER OAUTH TOKEN) ---
-// This remains largely the same, using the explicit token from the session
 const githubApiRequestUser = async (url, accessToken, params = {}) => {
   // Added check for token presence
   if (!accessToken) {
@@ -57,44 +56,36 @@ const githubApiRequestUser = async (url, accessToken, params = {}) => {
 
 const getRepoBranches = async (req, res, next) => {
   const { owner, repo } = req.params;
-  // Get the user access token attached by the checkAuth middleware
   const userAccessToken = req.accessToken;
 
-  // --- *** ADDED LOGGING *** ---
   console.log(`getRepoBranches: Request for ${owner}/${repo}`);
   if (!userAccessToken) {
-      console.error(`getRepoBranches: Missing userAccessToken in request for ${owner}/${repo}. Session might be invalid or checkAuth middleware failed.`);
+      console.error(`getRepoBranches: Missing userAccessToken in request for ${owner}/${repo}.`);
       return next(new AppError("Authentication token missing.", 401));
   }
-  // Log only the start/end to avoid exposing full token
   console.log(`getRepoBranches: Using user token starting with ${userAccessToken.substring(0, 4)}... ending with ...${userAccessToken.slice(-4)}`);
-  // --- *** END LOGGING *** ---
 
   try {
-    // Use the helper function designed for user tokens
     const data = await githubApiRequestUser(
       `https://api.github.com/repos/${owner}/${repo}/branches`,
-      userAccessToken // Pass the specific user token
+      userAccessToken
     );
     const branches = data.map((branch) => ({
       name: branch.name,
       commit: branch.commit.sha,
     }));
-
     res.json(branches);
   } catch (error) {
-    // Log the specific error before passing it to the global handler
     console.error(`getRepoBranches: Error fetching branches for ${owner}/${repo}:`, error.message);
-    next(error); // Pass error to the global error handler
+    next(error);
   }
 };
 
 const getRepoCommits = async (req, res, next) => {
   const { owner, repo } = req.params;
   const { branch } = req.query;
-  const userAccessToken = req.accessToken; // From checkAuth
+  const userAccessToken = req.accessToken;
 
-  // --- Logging ---
    console.log(`getRepoCommits: Request for ${owner}/${repo}, Branch: ${branch}`);
    if (!userAccessToken) {
        console.error(`getRepoCommits: Missing userAccessToken for ${owner}/${repo}.`);
@@ -105,24 +96,21 @@ const getRepoCommits = async (req, res, next) => {
        console.warn(`getRepoCommits: Branch name query parameter is missing for ${owner}/${repo}.`);
        return next(new AppError("Branch name is required", 400));
    }
-  // --- End Logging ---
 
   try {
-    // Use the user token helper
     const data = await githubApiRequestUser(
       `https://api.github.com/repos/${owner}/${repo}/commits`,
-      userAccessToken, // Pass user token
-      { sha: branch } // Pass branch as query param correctly
+      userAccessToken,
+      { sha: branch }
     );
     const commits = data.map((commit) => ({
       sha: commit.sha,
       message: commit.commit.message,
-      author: commit.commit.author?.name || 'Unknown', // Handle potential missing author name
-      date: commit.commit.author?.date, // Handle potential missing author date
-      branch: branch, // Include branch info
+      author: commit.commit.author?.name || 'Unknown',
+      date: commit.commit.author?.date,
+      branch: branch,
       parents: commit.parents.map((parent) => parent.sha),
     }));
-
     res.json(commits);
   } catch (error) {
     console.error(`getRepoCommits: Error fetching commits for ${owner}/${repo}, branch ${branch}:`, error.message);
@@ -141,15 +129,14 @@ const getRepoMerges = async (req, res, next) => {
      }
       console.log(`getRepoMerges: Using user token starting/ending: ${userAccessToken.substring(0, 4)}...${userAccessToken.slice(-4)}`);
 
-
     try {
         const data = await githubApiRequestUser(
             `https://api.github.com/repos/${owner}/${repo}/pulls`,
             userAccessToken,
-             { state: 'closed', per_page: 100 } // Fetch closed PRs
+             { state: 'closed', per_page: 100 }
         );
         const merges = data
-            .filter((pr) => pr.merged_at) // Filter only those that were merged
+            .filter((pr) => pr.merged_at)
             .map((pr) => ({
                 prNumber: pr.number,
                 title: pr.title,
@@ -158,7 +145,6 @@ const getRepoMerges = async (req, res, next) => {
                 headBranch: pr.head.ref,
                 mergeCommitSha: pr.merge_commit_sha,
             }));
-
         res.json(merges);
     } catch (error) {
         console.error(`getRepoMerges: Error fetching merges for ${owner}/${repo}:`, error.message);
@@ -168,7 +154,7 @@ const getRepoMerges = async (req, res, next) => {
 
 const getRepoIssues = async (req, res, next) => {
     const { owner, repo } = req.params;
-    const { state = "open" } = req.query; // Default to 'open' issues
+    const { state = "open" } = req.query;
     const userAccessToken = req.accessToken;
 
      console.log(`getRepoIssues: Request for ${owner}/${repo}, State: ${state}`);
@@ -179,14 +165,11 @@ const getRepoIssues = async (req, res, next) => {
        console.log(`getRepoIssues: Using user token starting/ending: ${userAccessToken.substring(0, 4)}...${userAccessToken.slice(-4)}`);
 
     try {
-        // Fetch issues (potentiall includes PRs, need to filter)
         const data = await githubApiRequestUser(
             `https://api.github.com/repos/${owner}/${repo}/issues`,
             userAccessToken,
             { state: state, per_page: 100 }
         );
-
-        // Filter out pull requests, as the issues endpoint returns both
         const issues = data
             .filter((issue) => !issue.pull_request)
             .map((issue) => ({
@@ -199,7 +182,6 @@ const getRepoIssues = async (req, res, next) => {
                 comments: issue.comments,
                 url: issue.html_url,
             }));
-
         res.json(issues);
     } catch (error) {
         console.error(`getRepoIssues: Error fetching issues for ${owner}/${repo}, state ${state}:`, error.message);
@@ -207,13 +189,12 @@ const getRepoIssues = async (req, res, next) => {
     }
 };
 
-
 const getRepoPR = async (req, res, next) => {
     const { owner, repo } = req.params;
-    const userAccessToken = req.accessToken; // User's token
-    const encryptedUsername = req.session.encryptedUsername; // Get current user for categorization
+    const userAccessToken = req.accessToken;
+    const encryptedUsername = req.session.encryptedUsername;
     const currentUser = encryptedUsername ? decryptData(encryptedUsername) : null;
-    const { branch } = req.query; // Optional base branch filter
+    const { branch } = req.query;
 
     console.log(`getRepoPR: Request for ${owner}/${repo}, Base Branch Filter: ${branch || 'any'}`);
     if (!userAccessToken) {
@@ -222,13 +203,11 @@ const getRepoPR = async (req, res, next) => {
     }
      console.log(`getRepoPR: Using user token starting/ending: ${userAccessToken.substring(0, 4)}...${userAccessToken.slice(-4)}`);
     if (!currentUser) {
-        // This case might happen if session got cleared but middleware didn't catch it? Unlikely.
          console.error(`getRepoPR: Could not decrypt username from session for ${owner}/${repo}.`);
         return next(new AppError("User context missing, please log in again.", 401));
     }
 
     try {
-        // Fetch all PRs (open and closed) for the repo, optionally filtered by base branch
         const prParams = { state: "all", per_page: 100 };
         if (branch) {
             prParams.base = branch;
@@ -239,31 +218,16 @@ const getRepoPR = async (req, res, next) => {
             prParams
         );
 
-        // OPTIONAL: Fetch comments count efficiently (consider removing if not strictly needed or if performance is an issue)
-        // const commentFetchPromises = prData.map(pr =>
-        //     githubApiRequestUser(
-        //         `https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`,
-        //         userAccessToken,
-        //         { per_page: 1 } // Just need to know if there are any comments, get 1 to check count
-        //     ).then(comments => comments.length) // Or use the comment_count from the PR list API if available
-        //      .catch(err => {
-        //           console.warn(`Failed to fetch comments for PR #${pr.number}: ${err.message}`);
-        //           return 0; // Default to 0 comments on error
-        //      })
-        // );
-        // const commentCounts = await Promise.all(commentFetchPromises);
-
         const prs = prData.map((pr, index) => ({
             id: pr.number,
             title: pr.title,
             createdAt: pr.created_at,
             author: pr.user?.login || 'Unknown',
-            status: pr.state, // 'open', 'closed'
+            status: pr.state,
             labels: pr.labels.map((label) => label.name),
-            // comments: commentCounts[index], // Use fetched counts if enabled
-            comments: pr.comments, // Use count from PR list API (check if field exists)
-            review_comments: pr.review_comments, // Use count from PR list API (check if field exists)
-            mergedAt: pr.merged_at, // null if not merged
+            comments: pr.comments,
+            review_comments: pr.review_comments,
+            mergedAt: pr.merged_at,
             requestedReviewers: pr.requested_reviewers
                 ? pr.requested_reviewers.map((reviewer) => reviewer.login)
                 : [],
@@ -272,36 +236,28 @@ const getRepoPR = async (req, res, next) => {
             url: pr.html_url,
         }));
 
-        // --- Categorization Logic (as before) ---
         const categorizedPRs = {
             open: [],
-            needsYourReview: [], // PRs assigned to the current user or requesting their review
-            waitingForAuthor: [], // PRs opened by the current user that have activity/comments
-            closed: [], // Closed but not merged
-            merged: [], // Closed and merged
+            needsYourReview: [],
+            waitingForAuthor: [],
+            closed: [],
+            merged: [],
         };
 
         prs.forEach((pr) => {
             const isMerged = !!pr.mergedAt;
             const isOpen = pr.status === 'open';
             const isAuthor = pr.author === currentUser;
-            // Note: The base 'pulls' endpoint doesn't list *detailed* review status per user.
-            // 'requestedReviewers' only lists *pending* requests.
-            // Determining "Needs Your Review" accurately often requires fetching review details separately per PR, which is expensive.
-            // We'll use a simplified logic here: open PRs not by the current user potentially need review.
-             const mayNeedReview = pr.requestedReviewers.includes(currentUser); // Basic check
+             const mayNeedReview = pr.requestedReviewers.includes(currentUser);
 
             if (isOpen) {
                 categorizedPRs.open.push(pr);
-                if (isAuthor && (pr.comments > 0 || pr.review_comments > 0)) { // If author and has comments
+                if (isAuthor && (pr.comments > 0 || pr.review_comments > 0)) {
                     categorizedPRs.waitingForAuthor.push(pr);
-                } else if (mayNeedReview) { // If assigned to current user
+                } else if (mayNeedReview) {
                      categorizedPRs.needsYourReview.push(pr);
                 }
-                // Open PRs by others not explicitly assigned might also need review,
-                // but we avoid putting everything in 'needsYourReview' without better logic.
-
-            } else { // Closed
+            } else {
                 if (isMerged) {
                     categorizedPRs.merged.push(pr);
                 } else {
@@ -309,7 +265,6 @@ const getRepoPR = async (req, res, next) => {
                 }
             }
         });
-        // --- End Categorization ---
 
         res.json(categorizedPRs);
     } catch (error) {
@@ -317,7 +272,6 @@ const getRepoPR = async (req, res, next) => {
         next(error);
     }
 };
-
 
 const getRepoContributors = async (req, res, next) => {
     const { owner, repo } = req.params;
@@ -330,7 +284,7 @@ const getRepoContributors = async (req, res, next) => {
      }
       console.log(`getRepoContributors: Using user token starting/ending: ${userAccessToken.substring(0, 4)}...${userAccessToken.slice(-4)}`);
 
-
+    // ** RESOLVED CONFLICT: Kept 'test' branch structure **
     try {
         // Fetch contributors list
         const contributorsData = await githubApiRequestUser(
@@ -344,6 +298,7 @@ const getRepoContributors = async (req, res, next) => {
             // Fetch user details (might contain email if public)
             let userDetail = null;
             try {
+                // Use the correct helper with the user token
                 userDetail = await githubApiRequestUser(
                     contributor.url, // Use the user API URL from the contributor data
                      userAccessToken
@@ -352,43 +307,228 @@ const getRepoContributors = async (req, res, next) => {
                  console.warn(`Failed to fetch user details for ${contributor.login}: ${userFetchError.message}`);
             }
 
-             // Optional: Fetch PR count (can be slow if many contributors)
-            // let prCount = 0;
-            // try {
-            //      const prsData = await githubApiRequestUser(
-            //          `https://api.github.com/repos/${owner}/${repo}/pulls`,
-            //          userAccessToken,
-            //          { state: 'all', creator: contributor.login, per_page: 1 } // Just need count
-            //      );
-            //      // NOTE: GitHub List PRs API doesn't return total count directly in headers easily accessible via basic Axios.
-            //      // A search query might be better for counts: `https://api.github.com/search/issues?q=repo:${owner}/${repo}+is:pr+author:${contributor.login}`
-            //      // For simplicity, we'll stick to contributions count from the initial list for now.
-            // } catch (prFetchError) {
-            //      console.warn(`Failed to fetch PR count for ${contributor.login}: ${prFetchError.message}`);
-            // }
-
+            // PR count fetching is omitted for now (as it was commented in 'test' branch)
 
             return {
                 name: contributor.login,
                 // Use email from user details if available and public, otherwise fallback
                 email: userDetail?.email || `${contributor.login}@users.noreply.github.com`, // Common GitHub no-reply format
                 contributions: contributor.contributions, // Provided by the contributors endpoint
-                // totalPRs: prCount, // Add if PR count fetching is implemented reliably
                 avatarUrl: contributor.avatar_url,
                 githubUrl: contributor.html_url,
             };
         });
 
         const contributors = await Promise.all(contributorDetailsPromises);
-
         res.json(contributors);
+
     } catch (error) {
         console.error(`getRepoContributors: Error fetching contributors for ${owner}/${repo}:`, error.message);
         next(error);
     }
 };
 
+// ** RESOLVED CONFLICT: Kept functions and helpers from 'main' branch **
+// --- Helper Functions for Metrics ---
+const formatDateForGrouping = (dateString) => {
+  const date = new Date(dateString);
+  // Use UTC methods to avoid timezone issues in grouping keys
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0'); // months are 0-indexed
+  const day = date.getUTCDate().toString().padStart(2, '0');
+  // Consider using ISO week date or a library function for more robust week grouping across year boundaries
+  // For simplicity, using month/day here. Adjust if precise weekly grouping is critical.
+  // Example using simple month/day:
+  return `${year}-${month}-${day}`; // Or use locale string: date.toLocaleDateString(...)
+};
 
+const groupByWeek = (prsData, branchEvents) => {
+  const groupedData = {};
+
+  // Helper to get the start of the week (e.g., Monday) in UTC
+  const getWeekStartDate = (date) => {
+    const dayOfWeek = date.getUTCDay(); // 0 = Sunday, 1 = Monday, ...
+    const diff = date.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+    const weekStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
+    return weekStart;
+  };
+
+  prsData.forEach((item) => {
+    const date = new Date(item.date);
+    const weekStart = getWeekStartDate(date);
+    const weekKey = weekStart.toISOString().split('T')[0]; // YYYY-MM-DD format for consistent key
+
+    if (!groupedData[weekKey]) {
+      groupedData[weekKey] = {
+        date: weekKey, // Store the start date of the week
+        totalPRsMerged: 0,
+        branchesCreated: 0,
+        timeToMergeTotal: 0,
+        mergeCount: 0,
+      };
+    }
+
+    groupedData[weekKey].totalPRsMerged += 1;
+    if (item.timeToMerge !== null) { // Only include valid merge times
+        groupedData[weekKey].timeToMergeTotal += item.timeToMerge;
+        groupedData[weekKey].mergeCount += 1;
+    }
+  });
+
+  branchEvents.forEach((event) => {
+    const date = new Date(event.created_at);
+    const weekStart = getWeekStartDate(date);
+     const weekKey = weekStart.toISOString().split('T')[0];
+
+    if (!groupedData[weekKey]) {
+      groupedData[weekKey] = {
+         date: weekKey,
+        totalPRsMerged: 0,
+        branchesCreated: 0,
+        timeToMergeTotal: 0,
+        mergeCount: 0,
+      };
+    }
+    groupedData[weekKey].branchesCreated += 1;
+  });
+
+  // Calculate averages after grouping all data
+  return Object.values(groupedData).map(week => ({
+    ...week,
+    avgTimeToMerge:
+      week.mergeCount > 0
+        ? parseFloat((week.timeToMergeTotal / week.mergeCount).toFixed(1))
+        : 0,
+    prCount: week.totalPRsMerged, // Keep alias if frontend uses it
+    // Remove intermediate calculation fields if not needed by frontend
+    // timeToMergeTotal: undefined,
+    // mergeCount: undefined,
+  }));
+};
+
+
+const getDaysDifference = (dateString1, dateString2) => {
+    if (!dateString1 || !dateString2) return null; // Return null if dates are invalid
+    try {
+        const date1 = new Date(dateString1);
+        const date2 = new Date(dateString2);
+        const diffTime = Math.abs(date2 - date1);
+        if (isNaN(diffTime)) return null; // Handle invalid date strings
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Difference in days
+    } catch (e) {
+        console.error("Error calculating date difference:", e);
+        return null;
+    }
+};
+
+
+const getRepoMetrics = async (req, res, next) => {
+  const { owner, repo } = req.params;
+  // ** RESOLVED CONFLICT: Use accessToken from req object **
+  const userAccessToken = req.accessToken;
+  const { timeframe = "3months" } = req.query;
+
+  console.log(`getRepoMetrics: Request for ${owner}/${repo}, Timeframe: ${timeframe}`);
+  if (!userAccessToken) {
+       console.error(`getRepoMetrics: Missing userAccessToken for ${owner}/${repo}.`);
+       return next(new AppError("Authentication token missing.", 401));
+   }
+   console.log(`getRepoMetrics: Using user token starting/ending: ${userAccessToken.substring(0, 4)}...${userAccessToken.slice(-4)}`);
+
+  try {
+    const startDate = new Date();
+    if (timeframe === "1month") {
+      startDate.setMonth(startDate.getMonth() - 1);
+    } else if (timeframe === "6months") {
+      startDate.setMonth(startDate.getMonth() - 6);
+    } else { // Default to 3 months
+      startDate.setMonth(startDate.getMonth() - 3);
+    }
+    const startDateString = startDate.toISOString(); // Use ISO format for comparison
+
+    console.log(`getRepoMetrics: Fetching PRs since ${startDateString}`);
+    // ** RESOLVED CONFLICT: Use githubApiRequestUser **
+    const prsData = await githubApiRequestUser(
+      `https://api.github.com/repos/${owner}/${repo}/pulls`,
+      userAccessToken, // Pass user token
+      {
+        state: "closed",
+        sort: "updated",
+        direction: "desc",
+        per_page: 100, // Consider pagination for very active repos
+      }
+    );
+
+    // Process PRs within the timeframe
+    const processedPRs = prsData
+      .filter((pr) => pr.merged_at && new Date(pr.merged_at) >= startDate)
+      .map((pr) => ({
+        date: pr.merged_at,
+        timeToMerge: getDaysDifference(pr.created_at, pr.merged_at), // Calculate diff
+      }));
+
+    console.log(`getRepoMetrics: Fetching events since ${startDateString}`);
+    // ** RESOLVED CONFLICT: Use githubApiRequestUser **
+    const eventsData = await githubApiRequestUser(
+      `https://api.github.com/repos/${owner}/${repo}/events`,
+      userAccessToken, // Pass user token
+      { per_page: 100 } // Consider pagination
+    );
+
+    // Filter relevant branch creation events within the timeframe
+    const branchEvents = eventsData.filter(
+      (event) =>
+        event.type === "CreateEvent" &&
+        event.payload.ref_type === "branch" &&
+        new Date(event.created_at) >= startDate
+    );
+
+    // Group data by week
+    const weeklyData = groupByWeek(processedPRs, branchEvents);
+
+    // Sort data chronologically by week start date
+    weeklyData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Calculate overall statistics for the period
+    const totalPRsMerged = processedPRs.length;
+    const totalBranchesCreated = branchEvents.length;
+    const validTimeToMergeValues = processedPRs
+        .map(pr => pr.timeToMerge)
+        .filter(time => time !== null && typeof time === 'number'); // Ensure only valid numbers
+
+    const overallAvgTimeToMerge =
+      validTimeToMergeValues.length > 0
+        ? parseFloat(
+            (
+              validTimeToMergeValues.reduce((sum, val) => sum + val, 0) /
+              validTimeToMergeValues.length
+            ).toFixed(1)
+          )
+        : 0;
+
+    const response = {
+      // Keep both keys if frontend might use either, or simplify to one
+      prMergeData: weeklyData.map(w => ({ date: w.date, value: w.totalPRsMerged })),
+      branchCreationData: weeklyData.map(w => ({ date: w.date, value: w.branchesCreated })),
+      timeToMergeData: weeklyData.map(w => ({ date: w.date, value: w.avgTimeToMerge })),
+      // Optionally provide overall stats separately
+      totalStats: {
+        totalPRsMerged: totalPRsMerged,
+        totalBranchesCreated: totalBranchesCreated,
+        overallAvgTimeToMerge: overallAvgTimeToMerge,
+        timeframeMonths: timeframe.replace('months', '').replace('month', ''), // Pass timeframe back
+        startDate: startDateString,
+      },
+    };
+
+    res.json(response);
+  } catch (error) {
+     console.error(`getRepoMetrics: Error fetching metrics for ${owner}/${repo}:`, error.message);
+    next(error);
+  }
+};
+
+// ** RESOLVED CONFLICT: Merged exports **
 module.exports = {
     getRepoBranches,
     getRepoCommits,
@@ -396,4 +536,5 @@ module.exports = {
     getRepoIssues,
     getRepoPR,
     getRepoContributors,
+    getRepoMetrics, // Include the function from 'main'
 };

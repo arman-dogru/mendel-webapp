@@ -122,13 +122,13 @@ export const getRepoPRs = async (owner, repo, branch = null) => {
   }
 };
 
-
 export const getRepoContributors = async (owner, repo) => {
   try {
       if (!owner || !repo) {
          throw new Error("Owner and repository name are required to fetch contributors.");
       }
       console.log(`API Call: Fetching contributors for ${owner}/${repo}`);
+      // Corrected endpoint based on repoRoutes.js
       const response = await apiClient.get(`/api/repo/${owner}/${repo}/contributors`);
       return response.data;
   } catch (error) {
@@ -145,10 +145,12 @@ export const scanRepository = async (owner, repo) => {
          throw new Error("Owner and repository name are required to start scan.");
       }
      console.log(`API Call: Starting scan for ${owner}/${repo}`);
+     // Using apiClient and correct endpoint
      const response = await apiClient.post(`/api/scan/${owner}/${repo}`);
      return response.data;
    } catch (error) {
      console.error(`Error starting scan for ${owner}/${repo}:`, error);
+     // Keep simpler error handling for now, can enhance later
      throw error;
    }
 };
@@ -159,11 +161,13 @@ export const getScanHistory = async (owner, repo) => {
              throw new Error("Owner and repository name are required to get scan history.");
         }
         console.log(`API Call: Fetching scan history for ${owner}/${repo}`);
+        // Using apiClient and correct endpoint
         const response = await apiClient.get(`/api/scan/${owner}/${repo}/history`);
         return response.data;
     } catch (error) {
          console.error(`Error fetching scan history for ${owner}/${repo}:`, error);
-        throw error;
+         // Keep simpler error handling
+         throw error;
     }
 };
 
@@ -173,13 +177,12 @@ export const getSpecificScan = async (scanId) => {
             throw new Error("Scan ID is required.");
         }
         console.log(`API Call: Fetching specific scan with ID: ${scanId}`);
+         // Using apiClient and correct endpoint
         const response = await apiClient.get(`/api/scan/${scanId}`);
         return response.data;
     } catch (error) {
          console.error(`Error fetching scan ${scanId}:`, error);
-        throw error;
+         // Keep simpler error handling
+         throw error;
     }
 };
-
-
-// You might add more API functions here as needed
