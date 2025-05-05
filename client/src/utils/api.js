@@ -19,16 +19,6 @@ export const getUserRepos = async () => {
   }
 };
 
-export const checkAuthStatus = async () => {
-  try {
-    const response = await axiosInstance.get("/api/auth/check-auth/status");
-    return response.data.isAuthenticated;
-  } catch (error) {
-    console.error("Error checking auth status:", error);
-    return false;
-  }
-};
-
 export const logout = async () => {
   try {
     const response = await axiosInstance.post("/api/auth/logout");
@@ -174,5 +164,36 @@ export const getRepoMetrics = async (owner, repo) => {
   } catch (error) {
     console.error("Error fetching repository metrics:", error);
     throw error;
+  }
+};
+export const getAllUserRepos = async () => {
+  try {
+    const response = await axiosInstance.get("/api/auth/all-repos");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all repositories:", error);
+    throw error;
+  }
+};
+
+export const saveUserRepoPermissions = async (repositories) => {
+  try {
+    const response = await axiosInstance.post("/api/auth/repo-permissions", {
+      repositories,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error saving repository permissions:", error);
+    throw error;
+  }
+};
+
+export const checkAuthStatus = async () => {
+  try {
+    const response = await axiosInstance.get("/api/auth/check-auth/status");
+    return response.data.isAuthenticated;
+  } catch (error) {
+    console.error("Error checking auth status:", error);
+    return false;
   }
 };
