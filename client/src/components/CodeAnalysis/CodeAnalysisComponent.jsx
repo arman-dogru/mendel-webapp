@@ -46,7 +46,7 @@ import CachedIcon from "@mui/icons-material/Cached";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import LaunchIcon from "@mui/icons-material/Launch";
-
+import ExportReportButton from "../ExportReportButton/ExportReportButtonComponent";
 const getCategoryIcon = (category) => {
   const iconProps = {
     fontSize: "small",
@@ -1020,6 +1020,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                 borderColor: "var(--text-primary)",
                 backgroundColor: "var(--card-bg-hover)",
               },
+              whiteSpace: "nowrap",
             }}
           >
             Scan History{" "}
@@ -1063,37 +1064,52 @@ const CodeAnalysisComponent = ({ repo }) => {
         </Box>
       </Box>
 
-      <Button
-        variant="contained"
-        onClick={handleScan}
-        disabled={loading || !owner || !repoName}
+      <Box
         sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: 2,
           mb: 3,
-          position: "relative",
-          backgroundColor: "var(--button-bg)",
-          "&:hover": { backgroundColor: "var(--button-hover-bg)" },
         }}
       >
-        {loading ? (
-          <>
-            <span style={{ visibility: "hidden" }}>Scanning...</span>{" "}
-            {/* Placeholder for size */}
-            <CircularProgress
-              size={24}
-              sx={{
-                color: "primary.contrastText", // Use contrast text color
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                marginTop: "-12px",
-                marginLeft: "-12px",
-              }}
-            />
-          </>
-        ) : (
-          "Scan Latest Commit"
-        )}
-      </Button>
+        <Button
+          variant="contained"
+          onClick={handleScan}
+          disabled={loading || !owner || !repoName}
+          sx={{
+            position: "relative",
+            backgroundColor: "var(--button-bg)",
+            "&:hover": { backgroundColor: "var(--button-hover-bg)" },
+          }}
+        >
+          {loading ? (
+            <>
+              <span style={{ visibility: "hidden" }}>Scanning...</span>{" "}
+              {/* Placeholder for size */}
+              <CircularProgress
+                size={24}
+                sx={{
+                  color: "primary.contrastText", // Use contrast text color
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  marginTop: "-12px",
+                  marginLeft: "-12px",
+                }}
+              />
+            </>
+          ) : (
+            "Scan Latest Commit"
+          )}
+        </Button>
+
+        {/* Add the Export Report button here */}
+        <ExportReportButton
+          analysisResult={analysisResult}
+          disabled={loading || !analysisResult}
+        />
+      </Box>
 
       {error && (
         <Alert
