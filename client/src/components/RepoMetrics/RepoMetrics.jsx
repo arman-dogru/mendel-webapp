@@ -50,7 +50,36 @@ const RepoMetricsComponent = () => {
         setLoading(true);
         const [owner, repo] = parts;
         const data = await getRepoMetrics(owner, repo);
-        setMetrics(data);
+
+        // Transform API data to match component expectations
+        const transformedData = {
+          // Transform prMergeData to expected format
+          prMergeData: data.prMergeData.map((item) => ({
+            date: item.date,
+            totalPRsMerged: item.value,
+          })),
+
+          // Transform branchData to expected format
+          branchCreationData: data.branchCreationData.map((item) => ({
+            date: item.date,
+            branchesCreated: item.value,
+          })),
+
+          // Transform timeToMergeData to expected format
+          timeToMergeData: data.timeToMergeData.map((item) => ({
+            date: item.date,
+            avgTimeToMerge: item.value || 0,
+          })),
+
+          // Add total stats
+          totalStats: {
+            totalPRsMerged: data.totalStats.totalPRsMerged || 0,
+            branchesCreated: data.totalStats.totalBranchesCreated || 0,
+            avgTimeToMerge: data.totalStats.overallAvgTimeToMerge || 0,
+          },
+        };
+
+        setMetrics(transformedData);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching repo metrics:", err);
@@ -101,14 +130,18 @@ const RepoMetricsComponent = () => {
     timeToMergeData: [],
     totalStats: {},
   };
+
   const hasPRData =
     Array.isArray(safeMetrics.prMergeData) &&
-    safeMetrics.prMergeData.length > 0;
+    safeMetrics.prMergeData.length > 0 &&
+    safeMetrics.prMergeData.some((item) => item.totalPRsMerged > 0);
+
   const hasTimeData =
     Array.isArray(safeMetrics.timeToMergeData) &&
-    safeMetrics.timeToMergeData.length > 0;
+    safeMetrics.timeToMergeData.length > 0 &&
+    safeMetrics.timeToMergeData.some((item) => item.avgTimeToMerge > 0);
 
-  if (!hasPRData) {
+  if (!metrics) {
     return (
       <div className="p-4 text-gray-500 bg-gray-100 rounded dark:bg-gray-900 dark:text-gray-200">
         <p>No metrics data available for this repository.</p>
@@ -121,14 +154,20 @@ const RepoMetricsComponent = () => {
     );
   }
 
-  const hasBranchActivity = safeMetrics.prMergeData.some(
-    (data) => (data?.branchesCreated || 0) > 0
-  );
+  // Check if we have branch creation data
+  const hasBranchActivity =
+    Array.isArray(safeMetrics.branchCreationData) &&
+    safeMetrics.branchCreationData.some(
+      (data) => (data?.branchesCreated || 0) > 0
+    );
 
   // Safely extract stats with default values
   const totalPRsMerged = safeMetrics.totalStats?.totalPRsMerged || 0;
   const branchesCreated = safeMetrics.totalStats?.branchesCreated || 0;
   const avgTimeToMerge = safeMetrics.totalStats?.avgTimeToMerge || 0;
+
+  // Build combined data array for branch activity
+  const branchActivityData = safeMetrics.branchCreationData || [];
 
   return (
     <div className="p-4 md:p-6 rounded-lg mb-8 fade-in">
@@ -175,7 +214,11 @@ const RepoMetricsComponent = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={safeMetrics.prMergeData}
+                  data={
+                    prFilter === "prs"
+                      ? safeMetrics.prMergeData
+                      : branchActivityData
+                  }
                   margin={{ top: 5, right: 10, left: 0, bottom: 20 }}
                 >
                   <CartesianGrid

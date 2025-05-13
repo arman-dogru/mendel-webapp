@@ -22,7 +22,13 @@ import {
   Divider,
   Menu,
   MenuItem,
-  Stack, // <-- Import Stack
+  Stack,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Slide,
 } from "@mui/material";
 import {
   scanRepository,
@@ -46,7 +52,7 @@ import CachedIcon from "@mui/icons-material/Cached";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import LaunchIcon from "@mui/icons-material/Launch";
-
+import ExportReportButton from "../ExportReportButton/ExportReportButtonComponent";
 const getCategoryIcon = (category) => {
   const iconProps = {
     fontSize: "small",
@@ -113,6 +119,9 @@ const CodeAnalysisComponent = ({ repo }) => {
     category: null,
     severity: null,
   });
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
 
   const [owner, repoName] = useMemo(() => {
     return repo ? repo.split("/") : ["", ""];
@@ -392,9 +401,7 @@ const CodeAnalysisComponent = ({ repo }) => {
     ) {
       if (activeFilters.category || activeFilters.severity) {
         return (
-          <Typography
-            sx={{ color: "var(--text-secondary)", mt: 2, textAlign: "center" }}
-          >
+          <Typography className="text-center mt-4 text-[var(--text-secondary)]">
             No issues match the current filter
             {activeFilters.category && activeFilters.severity ? "s" : ""}.
             {activeFilters.category && ` (Category: ${activeFilters.category})`}
@@ -410,13 +417,14 @@ const CodeAnalysisComponent = ({ repo }) => {
       return null;
     }
 
+    const handleIssueClick = (file, issue) => {
+      setSelectedIssue({ file, issue });
+      setIsModalOpen(true);
+    };
+
     return (
-      <Box sx={{ mt: 3 }}>
-        <Typography
-          variant="h6"
-          gutterBottom
-          sx={{ color: "var(--text-primary)" }}
-        >
+      <Box className="mt-6">
+        <Typography className="text-xl font-semibold text-[var(--text-primary)] mb-4">
           {!activeFilters.category && !activeFilters.severity
             ? "Identified Issues"
             : "Filtered Issues"}
@@ -427,277 +435,452 @@ const CodeAnalysisComponent = ({ repo }) => {
               7
             )})`}
         </Typography>
-        {filteredIssuesData.map((file) => (
-          <Paper
-            key={file.filePath}
-            elevation={2}
-            sx={{
-              p: 0,
-              mb: 2,
-              backgroundColor: "var(--card-bg)",
-              overflow: "hidden",
-            }}
-          >
+
+        <Box className="flex flex-col gap-4">
+          {filteredIssuesData.map((file) => (
             <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                p: 1.5,
-                borderBottom: expandedIssues[file.filePath]
-                  ? "1px solid"
-                  : "none",
-                borderColor: "var(--text-secondary)",
-                cursor: "pointer",
-                "&:hover": { backgroundColor: "var(--card-bg-hover)" },
-              }}
-              onClick={() => toggleExpandFile(file.filePath)}
+              key={file.filePath}
+              className="p-4 bg-[var(--card-bg)] border border-[var(--text-secondary)] rounded-lg shadow-sm transition-colors"
             >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  minWidth: 0,
-                  overflow: "hidden",
-                }}
-              >
-                <IconButton
-                  size="small"
-                  sx={{ mr: 0.5, color: "var(--text-primary)" }}
-                >
-                  {expandedIssues[file.filePath] ? (
-                    <ExpandLessIcon />
-                  ) : (
-                    <ExpandMoreIcon />
-                  )}
-                </IconButton>
+              {/* File Header Row */}
+              <Box className="flex justify-between items-center mb-3 pb-2 border-b border-[var(--card-bg-hover)]">
                 <Typography
-                  variant="body1"
-                  component="span"
-                  sx={{
-                    fontWeight: "medium",
-                    color: "var(--text-primary)",
-                    mr: 1,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                  className="text-lg font-medium text-[var(--text-primary)] truncate"
                   title={file.filePath}
                 >
-                  {file.filePath}
+                  {file.filePath} ({file.issues.length})
                 </Typography>
-                <Chip
-                  label={file.issues.length}
-                  size="small"
-                  sx={{
-                    mr: 1,
-                    backgroundColor: "var(--card-bg-hover)",
-                    color: "var(--text-primary)",
-                    flexShrink: 0,
-                  }}
-                />
-              </Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}
-              >
-                <Box sx={{ display: "flex", mr: 1 }}>
-                  {Array.from(
-                    new Set(file.issues.map((issue) => issue.category))
-                  )
-                    .slice(0, 3)
-                    .map((category, idx) => (
-                      <Tooltip key={idx} title={category}>
-                        <Box sx={{ mr: 0.5 }}>{getCategoryIcon(category)}</Box>
-                      </Tooltip>
-                    ))}
-                  {file.issues.length > 3 && (
-                    <Tooltip title="Multiple issue types">
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <Typography
-                          variant="caption"
-                          sx={{ color: "var(--text-secondary)" }}
+                <Box className="flex items-center gap-2">
+                  {file.githubUrl && (
+                    <>
+                      <Tooltip title="View on GitHub">
+                        <IconButton
+                          size="small"
+                          href={file.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            color: "#ffffff",
+                          }} // White, hover to light gray
                         >
-                          +
-                          {Array.from(
-                            new Set(file.issues.map((issue) => issue.category))
-                          ).length - 3}
-                        </Typography>
-                      </Box>
-                    </Tooltip>
+                          <LaunchIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Redirect to GitHub">
+                        <IconButton
+                          size="small"
+                          href={file.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            color: "#ffffff",
+                            "&:hover": { color: "#e5e7eb" },
+                          }} // White, hover to light gray
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </IconButton>
+                      </Tooltip>
+                    </>
                   )}
                 </Box>
-                {file.githubUrl && (
-                  <Tooltip title="Open file on GitHub">
-                    <IconButton
-                      size="small"
-                      href={file.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      sx={{
-                        color: "var(--text-secondary)",
-                        "&:hover": { color: "var(--text-primary)" },
-                      }}
-                    >
-                      <LaunchIcon fontSize="inherit" />
-                    </IconButton>
-                  </Tooltip>
-                )}
+              </Box>
+
+              {/* Issues List */}
+              <Box className="flex flex-col gap-4">
+                {file.issues.map((issue, issueIndex) => (
+                  <Box
+                    key={issueIndex}
+                    className="flex items-start gap-2 cursor-pointer hover:bg-[var(--button-bg)] p-2 rounded border border-[var(--text-secondary)] border-opacity-50"
+                    onClick={() => handleIssueClick(file, issue)}
+                  >
+                    <Box className="flex-shrink-0 mt-1">
+                      {getCategoryIcon(issue.category)}
+                    </Box>
+                    <Typography className="text-sm text-[var(--text-primary)]">
+                      {issue.description}
+                    </Typography>
+                  </Box>
+                ))}
               </Box>
             </Box>
-            <Collapse
-              in={expandedIssues[file.filePath]}
-              timeout="auto"
-              unmountOnExit
-            >
-              <Box
-                sx={{
-                  p: 2,
-                  borderTop: "1px solid",
-                  borderColor: "var(--text-secondary)",
-                  backgroundColor: "var(--card-bg)",
-                }}
-              >
-                {file.issues.map((issue, index) => {
-                  const severityProps = getSeverityProps(issue.severity);
-                  return (
-                    <Box
-                      key={index}
-                      sx={{
-                        mb: index < file.issues.length - 1 ? 2 : 0,
-                        pb: index < file.issues.length - 1 ? 2 : 0,
-                        borderBottom:
-                          index < file.issues.length - 1
-                            ? "1px dashed"
-                            : "none",
-                        borderColor: "var(--text-secondary)",
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          mb: 0.5,
-                          flexWrap: "wrap",
-                          gap: 0.5,
-                        }}
-                      >
-                        <Tooltip
-                          title={`Severity: ${issue.severity || "Unknown"}`}
-                        >
-                          <Chip
-                            icon={severityProps.icon}
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              fontWeight: "medium",
-                              minWidth: "auto",
-                              "& .MuiChip-icon": {
-                                marginLeft: "5px",
-                                marginRight: "-6px",
-                                color: `${severityProps.color}.main`,
-                              },
-                              borderColor: `${severityProps.color}.main`,
-                              color: `${severityProps.color}.main`,
-                              backgroundColor: "var(--card-bg)",
-                            }}
-                          />
-                        </Tooltip>
-                        {issue.category && (
-                          <Tooltip title={`Category: ${issue.category}`}>
-                            <Chip
-                              icon={getCategoryIcon(issue.category)}
-                              size="small"
-                              variant="filled"
-                              sx={{
-                                minWidth: "auto",
-                                "& .MuiChip-icon": {
-                                  marginLeft: "5px",
-                                  marginRight: "-6px",
-                                  color: "var(--text-primary)",
-                                },
-                                backgroundColor: "var(--card-bg-hover)",
-                                color: "var(--text-primary)",
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                        {issue.line && (
-                          <Tooltip title={`Line: ${issue.line}`}>
-                            <Chip
-                              label={`L${issue.line}`}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                minWidth: "auto",
-                                height: "20px",
-                                fontSize: "0.75rem",
-                                borderColor: "var(--text-secondary)",
-                                color: "var(--text-primary)",
-                                backgroundColor: "var(--card-bg)",
-                              }}
-                            />
-                          </Tooltip>
-                        )}
-                      </Box>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          fontWeight: "medium",
-                          color: "var(--text-primary)",
-                          mb: 0.5,
-                        }}
-                      >
-                        {issue.description}
-                      </Typography>
-                      {issue.explanation && (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "var(--text-secondary)",
-                            mb: 1,
-                          }}
-                        >
-                          <strong>Explanation:</strong> {issue.explanation}
-                        </Typography>
-                      )}
-                      {issue.suggestion && (
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "#ff5555", mb: 1 }}
-                        >
-                          <strong>Suggestion:</strong> {issue.suggestion}
-                        </Typography>
-                      )}
-                      {issue.code_snippet && (
-                        <Box
-                          component="pre"
-                          sx={{
-                            backgroundColor: "#2d2d2d",
-                            p: 1.5,
-                            borderRadius: 1,
-                            overflowX: "auto",
-                            my: 1,
-                            fontSize: "0.875rem",
-                            color: "var(--text-primary)",
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-all",
-                          }}
-                        >
-                          <code>{issue.code_snippet}</code>
-                        </Box>
-                      )}
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Collapse>
-          </Paper>
-        ))}
+          ))}
+        </Box>
       </Box>
     );
   };
 
+  const IssueDetailModal = ({ open, onClose, issue, file }) => {
+    const [comment, setComment] = useState("");
+    const [chatHistory, setChatHistory] = useState([]); // State for chat messages
+
+    // Initialize chat with a default message when the modal opens
+    useEffect(() => {
+      if (open) {
+        setChatHistory([
+          {
+            sender: "bot",
+            message:
+              "Hello! I'm here to help with this issue. What would you like to discuss?",
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      }
+    }, [open]);
+
+    if (!issue || !file) return null;
+
+    const severityProps = getSeverityProps(issue.severity);
+
+    // Handle sending a message
+    const handleSendMessage = () => {
+      if (!comment.trim()) return;
+
+      const userMessage = {
+        sender: "user",
+        message: comment,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      // Add user message to chat history
+      setChatHistory((prev) => [...prev, userMessage]);
+
+      // Simulate a bot response (for now, a static response)
+      const botResponse = {
+        sender: "bot",
+        message:
+          "Thanks for your message! I'm analyzing the issue. Could you provide more details?",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      setChatHistory((prev) => [...prev, botResponse]);
+
+      // Clear the input field
+      setComment("");
+    };
+
+    return (
+      <Dialog
+        open={open}
+        onClose={onClose}
+        fullWidth
+        maxWidth="md"
+        TransitionComponent={Transition}
+        PaperProps={{
+          sx: {
+            backgroundColor: "var(--card-bg)",
+            borderRadius: { xs: "8px", md: "8px 0 0 8px" },
+            margin: { xs: 1, sm: 2, md: "0 0 0 auto" },
+            width: {
+              xs: "calc(100% - 16px)",
+              sm: "calc(100% - 32px)",
+              md: "50%",
+            },
+            height: { md: "100%" },
+            maxHeight: "100%",
+            position: { md: "fixed" },
+            right: 0,
+            top: 0,
+            boxShadow: "-4px 0 12px rgba(0,0,0,0.2)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            color: "var(--text-primary)",
+            borderBottom: "1px solid",
+            borderColor: "var(--card-bg-hover)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              {getCategoryIcon(issue.category)}
+            </Box>
+            <Typography variant="h6">{issue.description}</Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{ color: "var(--text-primary)" }}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2 }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ color: "var(--text-secondary)" }}>
+              File: {file.filePath}
+              {file.githubUrl && (
+                <IconButton
+                  size="small"
+                  href={file.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    ml: 1,
+                    color: "var(--text-secondary)",
+                    "&:hover": { color: "var(--text-primary)" },
+                  }}
+                >
+                  <LaunchIcon fontSize="inherit" />
+                </IconButton>
+              )}
+            </Typography>
+          </Box>
+
+          <Box className="flex flex-wrap gap-2 mb-4">
+            {issue.category && (
+              <Chip
+                icon={
+                  <span className="ml-2">
+                    {getCategoryIcon(issue.category)}
+                  </span>
+                }
+                label={issue.category}
+                size="small"
+                sx={{
+                  backgroundColor: "var(--card-bg-hover)",
+                  color: "#ffffff",
+                  "& .MuiChip-icon": { color: "#ffffff" },
+                  paddingX: "8px",
+                  paddingY: "4px",
+                  borderRadius: "9999px",
+                }}
+              />
+            )}
+            <Chip
+              icon={<span className="ml-2">{severityProps.icon}</span>}
+              label={issue.severity || "Unknown"}
+              size="small"
+              variant="outlined"
+              sx={{
+                borderColor: `${severityProps.color}.main`,
+                color: "#ffffff",
+                "& .MuiChip-icon": { color: "#ffffff" },
+                paddingX: "8px",
+                paddingY: "4px",
+                borderRadius: "9999px",
+              }}
+            />
+            {issue.line && (
+              <Chip
+                label={`Line ${issue.line}`}
+                size="small"
+                sx={{
+                  backgroundColor: "var(--card-bg-hover)",
+                  color: "#ffffff",
+                  paddingX: "8px",
+                  paddingY: "4px",
+                  borderRadius: "9999px",
+                }}
+              />
+            )}
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "var(--text-secondary)",
+                fontWeight: "medium",
+                mb: 0.5,
+              }}
+            >
+              Description
+            </Typography>
+            <Typography variant="body1" sx={{ color: "var(--text-primary)" }}>
+              {issue.explanation || "No explanation provided"}
+            </Typography>
+          </Box>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "var(--text-secondary)",
+                fontWeight: "medium",
+                mb: 0.5,
+              }}
+            >
+              Suggestion
+            </Typography>
+            <Typography variant="body1" sx={{ color: "var(--button-bg)" }}>
+              {issue.suggestion || "No suggestion provided"}
+            </Typography>
+          </Box>
+
+          {issue.code_snippet && (
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "var(--text-secondary)",
+                  fontWeight: "medium",
+                  mb: 0.5,
+                }}
+              >
+                Code
+              </Typography>
+              <Box
+                component="pre"
+                sx={{
+                  backgroundColor: "#2d2d2d",
+                  p: 1.5,
+                  borderRadius: 1,
+                  overflowX: "auto",
+                  fontSize: "0.875rem",
+                  color: "var(--text-primary)",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-all",
+                }}
+              >
+                <code>{issue.code_snippet}</code>
+              </Box>
+            </Box>
+          )}
+
+          {/* Chat History Display */}
+          <Box
+            sx={{
+              mb: 3,
+              maxHeight: "200px",
+              overflowY: "auto",
+              backgroundColor: "var(--card-bg-hover)", // Slightly lighter background for chat area
+              borderRadius: "8px",
+              p: 2,
+              border: "1px solid var(--text-secondary)",
+              borderOpacity: 0.2,
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                color: "var(--text-secondary)",
+                fontWeight: "medium",
+                mb: 1.5,
+                borderBottom: "1px solid var(--text-secondary)",
+                pb: 0.5,
+              }}
+            >
+              Chat with AI
+            </Typography>
+            {chatHistory.map((msg, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: msg.sender === "user" ? "flex-end" : "flex-start",
+                  mb: 1.5,
+                }}
+              >
+                <Box
+                  sx={{
+                    backgroundColor:
+                      msg.sender === "user"
+                        ? "var(--button-bg)" // Red for user messages
+                        : "#3a3a3a", // Slightly darker gray for bot messages
+                    color: "var(--text-primary)",
+                    borderRadius: "12px",
+                    p: "8px 12px",
+                    maxWidth: "70%",
+                    wordBreak: "break-word",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                    "&:hover": {
+                      backgroundColor:
+                        msg.sender === "user"
+                          ? "var(--button-hover-bg)" // Lighter red on hover for user
+                          : "#454545", // Lighter gray on hover for bot
+                    },
+                    transition: "background-color 0.2s ease",
+                  }}
+                >
+                  <Typography variant="body2">{msg.message}</Typography>
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "var(--text-secondary)",
+                    mt: 0.5,
+                    fontSize: "0.65rem",
+                  }}
+                >
+                  {msg.sender === "user" ? "You" : "AI"} • {msg.timestamp}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <Divider sx={{ borderColor: "var(--text-secondary)" }} />
+        <DialogActions sx={{ p: 2, backgroundColor: "var(--card-bg)" }}>
+          <Box sx={{ width: "100%" }}>
+            <TextField
+              fullWidth
+              placeholder="Chat with AI about this issue..."
+              variant="outlined"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && comment.trim()) {
+                  handleSendMessage();
+                }
+              }}
+              InputProps={{
+                sx: {
+                  backgroundColor: "var(--card-bg-hover)",
+                  borderRadius: "8px",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "transparent",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "var(--text-secondary)",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "var(--button-bg)",
+                  },
+                  color: "var(--text-primary)",
+                },
+                endAdornment: (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    disabled={!comment.trim()}
+                    onClick={handleSendMessage}
+                    sx={{
+                      backgroundColor: "var(--button-bg)",
+                      "&:hover": { backgroundColor: "var(--button-hover-bg)" },
+                    }}
+                  >
+                    Send
+                  </Button>
+                ),
+              }}
+            />
+          </Box>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+
+  // Add this right after the imports
+  const Transition = React.forwardRef(function Transition(props, ref) {
+    return <Slide direction="left" ref={ref} {...props} />;
+  });
   const renderDashboard = () => {
     if (!dashboardData) {
       if (
@@ -1020,6 +1203,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                 borderColor: "var(--text-primary)",
                 backgroundColor: "var(--card-bg-hover)",
               },
+              whiteSpace: "nowrap",
             }}
           >
             Scan History{" "}
@@ -1063,37 +1247,52 @@ const CodeAnalysisComponent = ({ repo }) => {
         </Box>
       </Box>
 
-      <Button
-        variant="contained"
-        onClick={handleScan}
-        disabled={loading || !owner || !repoName}
+      <Box
         sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: 2,
           mb: 3,
-          position: "relative",
-          backgroundColor: "var(--button-bg)",
-          "&:hover": { backgroundColor: "var(--button-hover-bg)" },
         }}
       >
-        {loading ? (
-          <>
-            <span style={{ visibility: "hidden" }}>Scanning...</span>{" "}
-            {/* Placeholder for size */}
-            <CircularProgress
-              size={24}
-              sx={{
-                color: "primary.contrastText", // Use contrast text color
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                marginTop: "-12px",
-                marginLeft: "-12px",
-              }}
-            />
-          </>
-        ) : (
-          "Scan Latest Commit"
-        )}
-      </Button>
+        <Button
+          variant="contained"
+          onClick={handleScan}
+          disabled={loading || !owner || !repoName}
+          sx={{
+            position: "relative",
+            backgroundColor: "var(--button-bg)",
+            "&:hover": { backgroundColor: "var(--button-hover-bg)" },
+          }}
+        >
+          {loading ? (
+            <>
+              <span style={{ visibility: "hidden" }}>Scanning...</span>{" "}
+              {/* Placeholder for size */}
+              <CircularProgress
+                size={24}
+                sx={{
+                  color: "primary.contrastText", // Use contrast text color
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  marginTop: "-12px",
+                  marginLeft: "-12px",
+                }}
+              />
+            </>
+          ) : (
+            "Scan Latest Commit"
+          )}
+        </Button>
+
+        {/* Add the Export Report button here */}
+        <ExportReportButton
+          analysisResult={analysisResult}
+          disabled={loading || !analysisResult}
+        />
+      </Box>
 
       {error && (
         <Alert
@@ -1114,6 +1313,14 @@ const CodeAnalysisComponent = ({ repo }) => {
           {renderSummary()}
           {renderDashboard()}
           {renderIssueList()}
+          {selectedIssue && (
+            <IssueDetailModal
+              open={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              issue={selectedIssue.issue}
+              file={selectedIssue.file}
+            />
+          )}
         </>
       )}
 

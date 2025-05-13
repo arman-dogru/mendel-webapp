@@ -26,13 +26,6 @@ const TeamsComponents = () => {
         console.error("Error fetching contributors:", err);
         setError("Failed to load contributors data");
         setLoading(false);
-
-        setContributors([
-          { name: "Jane Doe", email: "jane@example.com", totalPRs: 23 },
-          { name: "John Smith", email: "john@github.com", totalPRs: 17 },
-          { name: "Alex Johnson", email: "alex@dev.com", totalPRs: 8 },
-          { name: "Sam Wilson", email: "sam@coder.net", totalPRs: 12 },
-        ]);
       }
     };
 
@@ -61,9 +54,9 @@ const TeamsComponents = () => {
 
   return (
     <>
-      <div className="p-4 md:p-6 card-bg rounded-lg">
+      <div className="p-4 md:p-6">
         <RepoMetricsComponent />
-        <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-primary  border-t border-gray-700">
+        <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-primary border-t border-gray-700">
           Repository Contributors
         </h2>
 
@@ -74,17 +67,8 @@ const TeamsComponents = () => {
                 <th className="p-2 md:p-3 text-left text-primary font-medium">
                   Name
                 </th>
-                <th className="p-2 md:p-3 text-left text-primary font-medium hidden sm:table-cell">
-                  Email
-                </th>
                 <th className="p-2 md:p-3 text-left text-primary font-medium">
-                  Total PRs
-                </th>
-                <th className="p-2 md:p-3 text-left text-primary font-medium hidden md:table-cell">
-                  Column 1
-                </th>
-                <th className="p-2 md:p-3 text-left text-primary font-medium hidden lg:table-cell">
-                  Column 2
+                  Contributions
                 </th>
                 <th className="p-2 md:p-3 text-center text-primary font-medium">
                   Actions
@@ -100,14 +84,9 @@ const TeamsComponents = () => {
                   <td className="p-2 md:p-3 text-primary">
                     {contributor.name}
                   </td>
-                  <td className="p-2 md:p-3 text-primary hidden sm:table-cell text-sm">
-                    {contributor.email}
-                  </td>
                   <td className="p-2 md:p-3 text-primary">
-                    {contributor.totalPRs}
+                    {contributor.contributions || contributor.totalPRs || 0}
                   </td>
-                  <td className="p-2 md:p-3 text-primary hidden md:table-cell"></td>
-                  <td className="p-2 md:p-3 text-primary hidden lg:table-cell"></td>
                   <td className="p-2 md:p-3 text-center">
                     <button
                       onClick={() => handleViewDetails(contributor)}
@@ -166,13 +145,10 @@ const TeamsComponents = () => {
                   <Eye className="h-4 w-4 text-primary" />
                 </button>
               </div>
-              <div className="text-sm text-secondary mb-1">
-                {contributor.email}
-              </div>
               <div className="flex justify-between text-sm mt-2">
-                <span className="text-primary">PRs:</span>
+                <span className="text-primary">Contributions:</span>
                 <span className="font-medium text-primary">
-                  {contributor.totalPRs}
+                  {contributor.contributions || contributor.totalPRs || 0}
                 </span>
               </div>
             </div>
