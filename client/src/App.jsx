@@ -4,7 +4,6 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 import { RepoProvider } from "./context/RepoContext";
-import RepoPermissionsPage from "./pages/RepoPermissionsPage";
 
 function AppContent() {
   return (
@@ -25,14 +24,6 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/repo-permissions"
-            element={
-              <ProtectedRoute>
-                <RepoPermissionsPage />
               </ProtectedRoute>
             }
           />

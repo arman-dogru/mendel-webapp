@@ -5,59 +5,106 @@ const {
   CALLBACK_URL,
   GITHUB_CLIENT_SECRET,
   FRONTEND_URL,
+  GITHUB_APP_NAME,
 } = require("../config/env");
 const { AppError } = require("../utils/errorHandler");
+const { v4: uuidv4 } = require("uuid");
 
 const startGitHubOauth = (req, res) => {
-  const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${CALLBACK_URL}&scope=repo`;
+  const state = uuidv4();
+  req.session.oauthState = state;
+  const url = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new?state=${state}`;
   res.redirect(url);
 };
 
 const handleGitHubCallback = async (req, res, next) => {
-  const { code } = req.query;
+  const { code, installation_id, setup_action, state } = req.query;
 
-  if (!code) {
-    return next(new AppError("Code not found", 400));
-  }
+  if (installation_id && setup_action) {
+    try {
+      req.session.installationId = installation_id;
 
-  try {
-    const response = await axios.post(
-      "https://github.com/login/oauth/access_token",
-      {
-        client_id: GITHUB_CLIENT_ID,
-        client_secret: GITHUB_CLIENT_SECRET,
-        code,
-      },
-      {
-        headers: { Accept: "application/json" },
+      const expectedState = req.session.oauthState;
+      if (!state || state !== expectedState) {
+        console.error(
+          `State mismatch in installation callback. Expected: ${expectedState}, Got: ${state}`
+        );
+        return next(new AppError("Invalid state parameter", 400));
       }
-    );
-    const accessToken = response.data.access_token;
-
-    if (!accessToken) {
-      throw new AppError("Access token not found", 401);
+      const oauthState = uuidv4();
+      req.session.oauthState = oauthState;
+      const scopes = ["repo", "admin:org", "read:org", "user:email"].join(" ");
+      const oauthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${CALLBACK_URL}&scope=${encodeURIComponent(
+        scopes
+      )}&state=${oauthState}`;
+      return res.redirect(oauthUrl);
+    } catch (error) {
+      console.error("Error in installation callback:", error.message);
+      return next(new AppError("Failed to handle installation callback", 500));
     }
-
-    const userResponse = await axios.get("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/vnd.github+json",
-      },
-    });
-    const username = userResponse.data.login;
-
-    if (!username) {
-      throw new AppError("username not found", 404);
+  }
+  if (code) {
+    const expectedState = req.session.oauthState;
+    if (!state || state !== expectedState) {
+      console.error(
+        `State mismatch in OAuth callback. Expected: ${expectedState}, Got: ${state}`
+      );
+      return next(new AppError("Invalid state parameter", 400));
     }
+    delete req.session.oauthState;
 
-    req.session.accessToken = accessToken;
-    req.session.encryptedUsername = encryptData(username);
-    req.session.allowedRepositories = [];
+    try {
+      const response = await axios.post(
+        "https://github.com/login/oauth/access_token",
+        {
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
+          code,
+        },
+        {
+          headers: { Accept: "application/json" },
+        }
+      );
+      const accessToken = response.data.access_token;
 
-    res.redirect(`${FRONTEND_URL}/repo-permissions`);
+      if (!accessToken) {
+        throw new AppError("Access token not found", 401);
+      }
+
+      const userResponse = await axios.get("https://api.github.com/user", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github+json",
+        },
+      });
+      const username = userResponse.data.login;
+
+      if (!username) {
+        throw new AppError("Username not found", 404);
+      }
+      req.session.accessToken = accessToken;
+      req.session.encryptedUsername = encryptData(username);
+      res.redirect(`${FRONTEND_URL}/homepage`);
+    } catch (error) {
+      console.error("Error in OAuth callback:", error.message);
+      return next(error);
+    }
+  } else {
+    return next(new AppError("Missing code or installation_id", 400));
+  }
+};
+
+const handleGitHubInstallation = async (req, res, next) => {
+  try {
+    const state = uuidv4();
+    req.session.oauthState = state;
+    const url = `https://github.com/apps/${GITHUB_APP_NAME}/installations/new?state=${state}`;
+    res.redirect(url);
   } catch (error) {
-    console.error("Error in callback:", error.message);
-    next(error);
+    console.error("Error initiating GitHub App installation:", error.message);
+    return next(
+      new AppError("Failed to initiate GitHub App installation", 500)
+    );
   }
 };
 
@@ -88,7 +135,7 @@ const getUserData = async (req, res, next) => {
 const getAllUserRepos = async (req, res, next) => {
   const accessToken = req.session.accessToken;
   if (!accessToken) {
-    return next(new AppError("Token not Found", 400));
+    return next(new AppError("Token not found", 400));
   }
   try {
     const response = await axios.get(
@@ -107,77 +154,37 @@ const getAllUserRepos = async (req, res, next) => {
   }
 };
 
-const saveRepoPermissions = async (req, res, next) => {
-  try {
-    // Get list of selected repositories from request body
-    const { repositories } = req.body;
-
-    if (!Array.isArray(repositories)) {
-      return next(new AppError("Invalid repositories format", 400));
-    }
-
-    // Store the selected repositories in session
-    req.session.allowedRepositories = repositories;
-
-    res.status(200).json({
-      success: true,
-      message: "Repository permissions saved",
-      count: repositories.length,
-    });
-  } catch (error) {
-    console.error("Error saving repo permissions:", error.message);
-    next(error);
-  }
-};
-
 const getUserRepos = async (req, res, next) => {
   const accessToken = req.session.accessToken;
-  if (!accessToken) {
-    return next(new AppError("Token not Found", 400));
+  const installationId = req.session.installationId;
+
+  if (!accessToken || !installationId) {
+    return next(new AppError("Token or installation_id not found", 400));
   }
 
   try {
-    const allowedRepositories = req.session.allowedRepositories || [];
-
-    // If user hasn't set permissions yet, redirect to permissions page
-    if (!allowedRepositories.length) {
-      return res.status(403).json({
-        error: "Repository permissions not set",
-        redirectTo: "/repo-permissions",
-      });
-    }
-
-    // Get all repositories
     const response = await axios.get(
-      `https://api.github.com/user/repos?per_page=100`,
+      `https://api.github.com/user/installations/${installationId}/repositories`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+          Accept: "application/vnd.github+json",
         },
       }
     );
 
-    const filteredRepos = response.data.filter((repo) =>
-      allowedRepositories.includes(repo.full_name)
-    );
-
-    res.json(filteredRepos);
+    const repos = response.data.repositories;
+    res.json(repos);
   } catch (error) {
     console.error("Repository error:", error.message);
-    next(error);
+    next(new AppError("Failed to fetch repositories", 500));
   }
 };
 
 const checkAuthStatus = (req, res) => {
   const isAuthenticated = !!req.session.accessToken;
-  const hasSetPermissions =
-    Array.isArray(req.session.allowedRepositories) &&
-    req.session.allowedRepositories.length > 0;
-
   res.json({
     isAuthenticated,
-    hasSetPermissions,
   });
 };
 
@@ -203,7 +210,7 @@ module.exports = {
   getUserData,
   getUserRepos,
   getAllUserRepos,
-  saveRepoPermissions,
   checkAuthStatus,
   logout,
+  handleGitHubInstallation,
 };
