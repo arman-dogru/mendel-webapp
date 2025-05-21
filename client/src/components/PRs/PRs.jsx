@@ -8,6 +8,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import "./PRs.css";
 import { handleApiError } from "../../utils/errorHandler";
+import PRDetailChatbot from "../PRDetailChatbot/PRDetailChatbot";
 
 const PRs = () => {
   const { repoFullName } = useParams();
@@ -15,7 +16,6 @@ const PRs = () => {
 
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
   const [owner, repoName] = repo ? repo.split("/") : ["", ""];
-
   const [prs, setPrs] = useState({
     open: [],
     needsYourReview: [],
@@ -26,11 +26,13 @@ const PRs = () => {
     merged: [],
   });
   const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState("master");
+  const [selectedBranch, setSelectedBranch] = useState("");
   const [showBranchFilter, setShowBranchFilter] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedPR, setSelectedPR] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,7 +45,11 @@ const PRs = () => {
       setError(null);
 
       try {
-        const prResponse = await getRepoPRs(owner, repoName, selectedBranch);
+        const prResponse = await getRepoPRs(
+          owner,
+          repoName,
+          selectedBranch || null
+        );
         setPrs({
           open: prResponse.open || [],
           needsYourReview: prResponse.needsYourReview || [],
@@ -53,9 +59,10 @@ const PRs = () => {
           closed: prResponse.closed || [],
           merged: prResponse.merged || [],
         });
-
-        const branchResponse = await getRepoBranches(owner, repoName);
-        setBranches(branchResponse || []);
+        if (branches.length === 0) {
+          const branchResponse = await getRepoBranches(owner, repoName);
+          setBranches([{ name: "All Branches" }, ...(branchResponse || [])]);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(handleApiError(err));
@@ -65,15 +72,20 @@ const PRs = () => {
     };
 
     fetchData();
-  }, [owner, repoName, selectedBranch]);
+  }, [owner, repoName, selectedBranch, branches.length]);
 
   const toggleRow = (row) => {
     setExpandedRow((prev) => (prev === row ? null : row));
   };
 
   const handleBranchSelect = (branch) => {
-    setSelectedBranch(branch);
+    setSelectedBranch(branch === "All Branches" ? "" : branch);
     setShowBranchFilter(false);
+  };
+
+  const handlePRClick = (pr) => {
+    setSelectedPR(pr);
+    setIsModalOpen(true);
   };
 
   const PRList = ({ prs, title, rowKey }) => {
@@ -108,7 +120,8 @@ const PRs = () => {
                 {prs.map((pr) => (
                   <li
                     key={pr.id}
-                    className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover"
+                    className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover cursor-pointer"
+                    onClick={() => handlePRClick(pr)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -117,6 +130,7 @@ const PRs = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-400 hover:underline text-sm"
+                          onClick={(e) => e.stopPropagation()} // Prevent modal trigger when clicking GitHub link
                         >
                           #{pr.id} {pr.title}
                         </a>
@@ -146,6 +160,7 @@ const PRs = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-400 hover:underline text-xs"
+                            onClick={(e) => e.stopPropagation()} // Prevent modal trigger
                           >
                             {pr.comments} 💬
                           </a>
@@ -200,11 +215,11 @@ const PRs = () => {
               fontWeight: 500,
             }}
           >
-            Current branch: {selectedBranch}
+            {selectedBranch || "All Branches"}
           </Button>
           {showBranchFilter && (
             <div
-              className="absolute left-0 mt-2 w-64 max-h-60 overflow-y-auto rounded-lg shadow-lg z-10 bg-cardBg pr-animate-dropdown" // Increased width from w-56 to w-64
+              className="absolute left-0 mt-2 w-64 max-h-60 overflow-y-auto rounded-lg shadow-lg z-10 bg-cardBg pr-animate-dropdown"
               style={{
                 scrollbarWidth: "thin",
                 scrollbarColor: "var(--text-secondary) var(--card-bg)",
@@ -249,6 +264,14 @@ const PRs = () => {
             rowKey="mergingAndMerged"
           />
         </div>
+      )}
+
+      {selectedPR && (
+        <PRDetailChatbot
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          pr={selectedPR}
+        />
       )}
     </div>
   );

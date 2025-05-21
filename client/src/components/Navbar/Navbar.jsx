@@ -27,7 +27,6 @@ function Navbar({ setActiveTab, activeTab, repo }) {
 
   const navLinks = [
     { label: "Dashboards", path: basePath, tab: "Dashboards" },
-    { label: "Branches", path: basePath, tab: "Branches" },
     { label: "PR's", path: basePath, tab: "PRs" },
     { label: "Issues", path: basePath, tab: "Issues" },
     { label: "Teams", path: basePath, tab: "Teams" },
@@ -36,7 +35,6 @@ function Navbar({ setActiveTab, activeTab, repo }) {
 
   const handleNavigation = (path, tab) => {
     setActiveTab(tab);
-    // Update URL query parameter when tab changes
     const currentParams = new URLSearchParams(location.search);
     currentParams.set("tab", tab);
     navigate(`${location.pathname}?${currentParams.toString()}`, {
