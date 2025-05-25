@@ -3,7 +3,6 @@ a:hover {
 }
 
 .bg-issue-card {
-  background-color: #1a1a1a;
   transition: background-color 0.2s ease;
 }
 

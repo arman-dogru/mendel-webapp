@@ -39,14 +39,14 @@
   height: 32px;
   width: 32px;
   object-fit: contain;
-  background-color: #161616;
+  background-color: hsl(234, 10%, 4%);
 }
 
 @media (max-width: 768px) {
   .logo {
     height: 28px;
     width: 28px;
-    background-color: #161616;
+    background-color: hsl(234, 10%, 4%);
   }
 }
 
@@ -54,6 +54,6 @@
   .logo {
     height: 24px;
     width: 24px;
-    background-color: #161616;
+    background-color: hsl(234, 10%, 4%);
   }
 }

@@ -1,28 +1,11 @@
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* TeamComponents.css - Cleaned and minimized */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(107, 114, 128, 0.5);
-  border-radius: 20px;
-}
-
-.card-bg {
-  background-color: rgba(17, 24, 39, 0.7);
-  transition: all 0.2s ease-in-out;
-}
-
-.card-bg:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.hover\:bg-card-bg-hover:hover {
-  background-color: rgba(55, 65, 81, 0.3);
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes custom-spin {
@@ -38,74 +21,19 @@
   animation: custom-spin 1s linear infinite;
 }
 
-@media (max-width: 640px) {
-  .bg-cardBg {
-    background-color: rgba(31, 41, 55, 0.7);
-    transition: transform 0.2s ease;
-  }
-
-  .bg-cardBg:active {
-    transform: scale(0.98);
-  }
+/* Focus states for accessibility */
+button:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
-.dark .text-primary {
-  color: rgba(229, 231, 235, 1);
-}
-
-.dark .text-secondary {
-  color: rgba(156, 163, 175, 1);
-}
-
-button.hover\:bg-gray-600:hover {
-  background-color: rgba(75, 85, 99, 0.7);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
-}
-
-button:active {
-  transform: translateY(0);
-}
-
-.text-center .w-12 {
-  opacity: 0.7;
-}
-
-thead tr {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-@media (max-width: 768px) {
-  .text-xl {
-    font-size: 1.1rem;
-  }
-
-  .text-lg {
-    font-size: 1rem;
-  }
-}
-
+/* Responsive button sizing */
 @media (max-width: 640px) {
   button {
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 44px;
+    min-width: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 }

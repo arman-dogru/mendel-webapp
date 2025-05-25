@@ -19,7 +19,7 @@ const Issues = () => {
   const [allAuthors, setAllAuthors] = useState([]);
   const [allMilestones, setAllMilestones] = useState([]);
   const [authorFilter, setAuthorFilter] = useState("");
-  const [timeFrameFilter, setTimeFrameFilter] = useState("all"); // New state for time frame
+  const [timeFrameFilter, setTimeFrameFilter] = useState("all");
 
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
   const [owner, repoName] = repo ? repo.split("/") : ["", ""];
@@ -52,7 +52,7 @@ const Issues = () => {
 
         filteredIssues = milestoneFilter
           ? filteredIssues.filter(
-              (issue) => issue.milestone === milestoneFilter,
+              (issue) => issue.milestone === milestoneFilter
             )
           : filteredIssues;
 
@@ -92,35 +92,39 @@ const Issues = () => {
   const displayedIssues = filterByTimeFrame(
     issues
       .filter((issue) => issue.status === activeTab)
-      .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true)),
+      .filter((issue) => (tagFilter ? issue.labels.includes(tagFilter) : true))
   );
 
   const openIssuesCount = issues.filter(
-    (issue) => issue.status === "open",
+    (issue) => issue.status === "open"
   ).length;
   const closedIssuesCount = issues.filter(
-    (issue) => issue.status === "closed",
+    (issue) => issue.status === "closed"
   ).length;
 
   if (loading) {
-    return <div className="text-center text-textSecondary">Loading...</div>;
+    return (
+      <div className="text-center text-secondary font-semibold">Loading...</div>
+    );
   }
 
   if (error) {
-    return <div className="text-center text-red-500">{error}</div>;
+    return (
+      <div className="text-center text-red-500 font-semibold">{error}</div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen dark-bg p-4 sm:p-6 md:p-8">
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => setActiveTab("open")}
-              className={`flex items-center gap-2 text-lg font-semibold transition-colors hover:text-textPrimary px-2 py-1 rounded ${
+              className={`inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:opacity-100 hover:[&_svg]:opacity-90 cursor-pointer bg-[var(--button-bg)] text-primary-foreground shadow-sm   h-9 px-4 py-2 border border-[var(--border)] ${
                 activeTab === "open"
-                  ? "text-textPrimary bg-gray-500"
-                  : "text-textSecondary"
+                  ? "bg-[var(--button-bg)]"
+                  : "bg-[var(--card-bg)] text-secondary hover:bg-[var(--card-bg-hover)]"
               }`}
             >
               <span className="text-red-500">!</span>
@@ -128,10 +132,10 @@ const Issues = () => {
             </button>
             <button
               onClick={() => setActiveTab("closed")}
-              className={`flex items-center gap-2 text-lg font-semibold transition-colors hover:text-textPrimary px-2 py-1 rounded ${
+              className={`inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:opacity-100 hover:[&_svg]:opacity-90 cursor-pointer bg-[var(--button-bg)] text-primary-foreground shadow-sm   h-9 px-4 py-2 border border-[var(--border)] ${
                 activeTab === "closed"
-                  ? "text-textPrimary bg-gray-500"
-                  : "text-textSecondary"
+                  ? "bg-[var(--button-bg)]"
+                  : "bg-[var(--card-bg)] text-secondary hover:bg-[var(--card-bg-hover)]"
               }`}
             >
               <span className="text-green-500">✓</span>
@@ -143,16 +147,19 @@ const Issues = () => {
             <select
               value={authorFilter}
               onChange={(e) => setAuthorFilter(e.target.value)}
-              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+              className="w-full sm:w-32 bg-[var(--card-bg)] text-primary border border-[var(--border)] rounded-md p-1.5 text-sm font-semibold   focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
-              <option value="" className="text-white bg-gray-800">
+              <option
+                value=""
+                className="bg-[var(--card-bg)] text-primary font-semibold"
+              >
                 All Authors
               </option>
               {allAuthors.map((author) => (
                 <option
                   key={author}
                   value={author}
-                  className="text-white bg-gray-800"
+                  className="bg-[var(--card-bg)] text-primary font-semibold  "
                 >
                   {author}
                 </option>
@@ -162,16 +169,19 @@ const Issues = () => {
             <select
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+              className="w-full sm:w-32 bg-[var(--card-bg)] text-primary border border-[var(--border)] rounded-md p-1.5 text-sm font-semibold   focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
-              <option value="" className="text-white bg-gray-800">
+              <option
+                value=""
+                className="bg-[var(--card-bg)] text-primary font-semibold"
+              >
                 All Labels
               </option>
               {allTags.map((tag) => (
                 <option
                   key={tag}
                   value={tag}
-                  className="text-white bg-gray-800"
+                  className="bg-[var(--card-bg)] text-primary font-semibold  "
                 >
                   {tag}
                 </option>
@@ -181,16 +191,19 @@ const Issues = () => {
             <select
               value={milestoneFilter}
               onChange={(e) => setMilestoneFilter(e.target.value)}
-              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+              className="w-full sm:w-32 bg-[var(--card-bg)] text-primary border border-[var(--border)] rounded-md p-1.5 text-sm font-semibold   focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
-              <option value="" className="text-white bg-gray-800">
+              <option
+                value=""
+                className="bg-[var(--card-bg)] text-primary font-semibold"
+              >
                 All Milestones
               </option>
               {allMilestones.map((milestone) => (
                 <option
                   key={milestone}
                   value={milestone}
-                  className="text-white bg-gray-800"
+                  className="bg-[var(--card-bg)] text-primary font-semibold  "
                 >
                   {milestone}
                 </option>
@@ -200,27 +213,43 @@ const Issues = () => {
             <select
               value={sortFilter}
               onChange={(e) => setSortFilter(e.target.value)}
-              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+              className="w-full sm:w-32 bg-[var(--card-bg)] text-primary border border-[var(--border)] rounded-md p-1.5 text-sm font-semibold   focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
-              <option value="newest" className="text-white bg-gray-800">
+              <option
+                value="newest"
+                className="bg-[var(--card-bg)] text-primary font-semibold  "
+              >
                 Newest
               </option>
-              <option value="oldest" className="text-white bg-gray-800">
+              <option
+                value="oldest"
+                className="bg-[var(--card-bg)] text-primary font-semibold  "
+              >
                 Oldest
               </option>
             </select>
+
             <select
               value={timeFrameFilter}
               onChange={(e) => setTimeFrameFilter(e.target.value)}
-              className="w-full sm:w-[100px] text-white bg-gray-800 border border-gray-600 rounded p-1 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 appearance-none"
+              className="w-full sm:w-32 bg-[var(--card-bg)] text-primary border border-[var(--border)] rounded-md p-1.5 text-sm font-semibold   focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
-              <option value="all" className="text-white bg-gray-800">
+              <option
+                value="all"
+                className="bg-[var(--card-bg)] text-primary font-semibold  "
+              >
                 All Time
               </option>
-              <option value="lastWeek" className="text-white bg-gray-800">
+              <option
+                value="lastWeek"
+                className="bg-[var(--card-bg)] text-primary font-semibold  "
+              >
                 Last Week
               </option>
-              <option value="lastMonth" className="text-white bg-gray-800">
+              <option
+                value="lastMonth"
+                className="bg-[var(--card-bg)] text-primary font-semibold  "
+              >
                 Last Month
               </option>
             </select>
@@ -229,7 +258,7 @@ const Issues = () => {
 
         <div className="space-y-2">
           {displayedIssues.length === 0 ? (
-            <div className="text-center text-textSecondary">
+            <div className="text-center text-secondary font-semibold">
               No issues found.
             </div>
           ) : (
@@ -239,11 +268,11 @@ const Issues = () => {
                 href={issue.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover"
+                className="block rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 hover:bg-[var(--card-bg-hover)] transition-colors"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-3 w-full">
-                    <span className="text-xl flex-shrink-0">
+                    <span className="text-xl font-semibold flex-shrink-0">
                       {issue.status === "open" ? (
                         <span className="text-red-500">!</span>
                       ) : (
@@ -252,14 +281,14 @@ const Issues = () => {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-textPrimary font-medium hover:text-blue-400 truncate">
+                        <span className="text-primary font-semibold truncate">
                           {issue.title}
                         </span>
-                        <span className="text-textSecondary text-xs flex-shrink-0">
+                        <span className="text-secondary text-xs font-semibold flex-shrink-0">
                           #{issue.id}
                         </span>
                       </div>
-                      <span className="text-textSecondary text-xs block">
+                      <span className="text-secondary text-xs font-semibold block">
                         Opened {formatDistanceToNow(new Date(issue.createdAt))}{" "}
                         ago by {issue.author}
                       </span>
@@ -267,24 +296,22 @@ const Issues = () => {
                         {issue.labels.map((label) => (
                           <span
                             key={label}
-                            className={`text-white text-xs px-2 py-1 rounded ${
+                            className={`text-primary-foreground text-xs font-semibold px-2 py-1 rounded ${
                               label === "bug"
-                                ? "bg-[#EF4444]"
+                                ? "bg-red-500"
                                 : label === "enhancement"
-                                  ? "bg-[#8B5CF6]"
-                                  : label === "help wanted"
-                                    ? "bg-[#10B981]"
-                                    : label === "good first issue"
-                                      ? "bg-[#F59E0B]"
-                                      : label === "more-information-needed"
-                                        ? "bg-[#3B82F6]"
-                                        : label === "priority-2"
-                                          ? "bg-[#3B82F6]"
-                                          : label === "priority-3"
-                                            ? "bg-[#3B82F6]"
-                                            : label === "tech-debt"
-                                              ? "bg-[#8B5CF6]"
-                                              : "bg-[#6B7280]"
+                                ? "bg-purple-500"
+                                : label === "help wanted"
+                                ? "bg-green-500"
+                                : label === "good first issue"
+                                ? "bg-yellow-500"
+                                : label === "more-information-needed" ||
+                                  label === "priority-2" ||
+                                  label === "priority-3"
+                                ? "bg-blue-500"
+                                : label === "tech-debt"
+                                ? "bg-purple-500"
+                                : "bg-gray-500"
                             }`}
                           >
                             {label}
@@ -295,9 +322,9 @@ const Issues = () => {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {issue.milestone && (
-                      <span className="text-textSecondary">📍</span>
+                      <span className="text-secondary font-semibold">📍</span>
                     )}
-                    <span className="text-textSecondary text-xs">
+                    <span className="text-secondary text-xs font-semibold">
                       {issue.comments} 💬
                     </span>
                   </div>

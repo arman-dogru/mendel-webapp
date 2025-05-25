@@ -1,9 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useRepo } from "../../context/RepoContext";
-import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import ForkRightIcon from "@mui/icons-material/ForkRight";
-import "./RepoCards.css";
 
 function RepoCards({ repos }) {
   const navigate = useNavigate();
@@ -24,7 +22,7 @@ function RepoCards({ repos }) {
       {repos.map((repo) => (
         <div
           key={repo.id}
-          className="card-bg rounded-md shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+          className="rounded-md border border-border bg-cardBg hover:border-gray-500 transition-all shadow-md hover:shadow-lg cursor-pointer"
           onClick={() => handleRepositoryNavigation(repo)}
         >
           <div className="p-4 pb-2">
@@ -38,11 +36,12 @@ function RepoCards({ repos }) {
                 </span>
               </div>
             </div>
-            <p className="text-textSecondary text-xs mt-3 mb-2 h-12 overflow-hidden">
+            <div className="mt-3 mb-2 h-12 overflow-y-auto pr-1 text-textSecondary text-sm scrollbar-hide">
               {repo.description || "No description available"}
-            </p>
+            </div>
+
             <div className="mt-6 mb-2">
-              <span className="text-xs text-textSecondary flex items-center">
+              <span className="text-sm text-textSecondary flex items-center">
                 <span
                   className="w-2 h-2 rounded-full mr-1 inline-block"
                   style={{
@@ -52,13 +51,12 @@ function RepoCards({ repos }) {
                         : "#ccc",
                   }}
                 ></span>
-                JavaScript
+                {repo.language || "Unknown"}
               </span>
             </div>
           </div>
 
-          {/* Footer with stats */}
-          <div className="flex justify-between items-center px-4 py-2 border-t border-gray-700 bg-opacity-50 text-xs text-textSecondary">
+          <div className="flex justify-between items-center px-4 py-2 border-t border-border bg-opacity-50 text-sm text-textSecondary">
             <div className="flex items-center">
               <StarIcon sx={{ fontSize: 14, marginRight: 0.5 }} />
               <span>{repo.stargazers_count || 0}</span>

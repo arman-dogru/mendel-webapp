@@ -1,16 +1,25 @@
-/* Define custom color variables */
+/* Define custom color, font weight, font size, and additional variables */
 :root {
-  --dark-bg: #1a1a1a;
-  --card-bg: #2a2a2a;
-  --card-bg-hover: #3a3a3a;
+  --dark-bg: hsl(234 10% 4% / 1);
+  --card-bg: hsl(234 10% 4% / 1);
+  --card-bg-hover: hsl(234 10% 4% / 1);
   --text-primary: #e0e0e0;
   --text-secondary: #a0a0a0;
-  --button-bg: #ff5555;
-  --button-hover-bg: #ff7777;
+  --button-bg: hsl(0, 0%, 98%);
+  --button-hover-bg: hsl(0, 20%, 88%);
   --javascript-color: #f1c40f;
+  --font-weight-semibold: 600;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --header-height: 4rem;
+  --border: #4a4a4a;
+  --background: hsl(234, 10%, 4%);
+  --accent: #2a2a2a;
+  --accent-foreground: #e0e0e0;
+  --ring: hsl(0, 20%, 88%);
 }
 
-/* Custom classes to apply the colors */
+/* Custom classes */
 .dark-bg {
   background-color: var(--dark-bg);
 }
@@ -27,7 +36,33 @@
   color: var(--text-secondary);
 }
 
-/* Override Tailwind's default styles for specific elements if needed */
+.font-semibold {
+  --tw-font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
+}
+
+.text-sm {
+  font-size: var(--text-sm);
+  line-height: var(--tw-leading, var(--text-sm--line-height));
+}
+
+.bg-background {
+  background-color: var(--background);
+}
+
+.border-border {
+  border-color: var(--border);
+}
+
+.hover\:bg-accent:hover {
+  background-color: var(--accent);
+}
+
+.hover\:text-accent-foreground:hover {
+  color: var(--accent-foreground);
+}
+
+/* Override Tailwind's default styles */
 .bg-darkBg {
   background-color: var(--dark-bg) !important;
 }
@@ -42,4 +77,13 @@
 
 .text-textSecondary {
   color: var(--text-secondary) !important;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

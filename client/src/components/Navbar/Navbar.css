@@ -1,105 +1,75 @@
-.MuiToolbar-root {
-  min-height: 64px;
-  padding-left: 16px;
-  padding-right: 16px;
+.dark-bg {
+  background-color: var(--dark-bg);
 }
 
-@media (max-width: 768px) {
-  .MuiToolbar-root {
-    min-height: 56px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .MuiTypography-h6 {
-    font-size: 1.1rem;
-  }
-
-  .MuiIconButton-root {
-    padding: 6px;
-  }
-
-  .MuiIconButton-root svg {
-    font-size: 1.25rem;
-  }
-
-  .MuiButton-root {
-    font-size: 0.9rem;
-  }
+.card-bg {
+  background-color: var(--card-bg);
 }
 
-@media (max-width: 480px) {
-  .MuiToolbar-root {
-    min-height: 48px;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-
-  .MuiTypography-h6 {
-    font-size: 0.9rem;
-  }
-
-  .MuiIconButton-root {
-    padding: 4px;
-  }
-
-  .MuiIconButton-root svg {
-    font-size: 1rem;
-  }
-
-  .MuiButton-root {
-    font-size: 0.75rem;
-  }
+.text-primary {
+  color: var(--text-primary);
 }
 
-@media (max-width: 200px) {
-  .MuiToolbar-root {
-    min-height: 40px;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-
-  .MuiTypography-h6 {
-    font-size: 0.75rem;
-  }
-
-  .MuiIconButton-root {
-    padding: 2px;
-  }
-
-  .MuiIconButton-root svg {
-    font-size: 0.875rem;
-  }
-
-  .MuiButton-root {
-    font-size: 0.65rem;
-  }
+.text-secondary {
+  color: var(--text-secondary);
 }
 
-.logo {
-  height: 32px;
-  width: 32px;
-  object-fit: contain;
-  background-color: #161616;
+.font-semibold {
+  --tw-font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-semibold);
 }
 
-@media (max-width: 768px) {
-  .logo {
-    height: 28px;
-    width: 28px;
-  }
+.text-sm {
+  font-size: var(--text-sm);
+  line-height: var(--tw-leading, var(--text-sm--line-height));
 }
 
-@media (max-width: 480px) {
-  .logo {
-    height: 24px;
-    width: 24px;
-  }
+.bg-background {
+  background-color: var(--background);
 }
 
-@media (max-width: 200px) {
-  .logo {
-    height: 20px;
-    width: 20px;
-  }
+.border-border {
+  border-color: var(--border);
+}
+
+.hover\:bg-accent:hover {
+  background-color: var(--accent);
+}
+
+.hover\:text-accent-foreground:hover {
+  color: var(--accent-foreground);
+}
+
+.text-zinc-50 {
+  color: var(--color-zinc-50);
+}
+
+.text-zinc-300 {
+  color: var(--color-zinc-300);
+}
+
+/* Override Tailwind's default styles */
+.bg-darkBg {
+  background-color: var(--dark-bg) !important;
+}
+
+.bg-cardBg {
+  background-color: var(--card-bg) !important;
+}
+
+.text-textPrimary {
+  color: var(--text-primary) !important;
+}
+
+.text-textSecondary {
+  color: var(--text-secondary) !important;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

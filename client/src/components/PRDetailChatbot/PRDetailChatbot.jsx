@@ -320,7 +320,7 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
               }}
             />
             <button
-              className={`bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--text-primary)] px-4 py-2 rounded-lg transition-colors ${
+              className={`bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-black px-4 py-2 rounded-lg transition-colors ${
                 !comment.trim() ? "opacity-50 cursor-not-allowed" : ""
               }`}
               onClick={handleSendMessage}

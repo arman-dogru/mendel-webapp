@@ -1,4 +1,3 @@
-/* src/components/RepoMetricsComponent.jsx */
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -12,7 +11,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getRepoMetrics } from "../../utils/api";
-import "./RepoMetrics.css";
 
 const ERROR_TYPES = {
   MISSING_PARAM: "Repository name is required",
@@ -115,7 +113,6 @@ const RepoMetricsComponent = () => {
     return (
       <div className="p-4 text-red-500 bg-red-100 rounded dark:bg-red-900 dark:text-red-200">
         <p className="mb-2 font-semibold">{error}</p>
-        {/* Added user guidance */}
         <p className="text-sm">
           Make sure the repository exists and is publicly accessible. Format
           should be 'owner/repo'.
@@ -144,8 +141,9 @@ const RepoMetricsComponent = () => {
   if (!metrics) {
     return (
       <div className="p-4 text-gray-500 bg-gray-100 rounded dark:bg-gray-900 dark:text-gray-200">
-        <p>No metrics data available for this repository.</p>
-        {/* Added user guidance */}
+        <p className="font-semibold">
+          No metrics data available for this repository.
+        </p>
         <p className="text-sm mt-2">
           Ensure the repository has recent pull request activity. New
           repositories or those without merge activity will not show metrics.
@@ -170,35 +168,34 @@ const RepoMetricsComponent = () => {
   const branchActivityData = safeMetrics.branchCreationData || [];
 
   return (
-    <div className="p-4 md:p-6 rounded-lg mb-8 fade-in">
-      <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-primary">
+    <div className="p-4 md:p-6 lg:p-8 bg-cardBg mb-8 fade-in border-t border-border">
+      <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-6 md:mb-8 text-primary">
         Repository Analytics
       </h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* First Chart - PR Metrics */}
-        <div className="p-4 rounded-lg shadow slide-in">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-primary">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8">
+        <div className="bg-cardBg p-4 md:p-6 rounded-lg shadow-sm border border-border slide-in">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
+            <h3 className="text-lg md:text-xl font-semibold text-primary">
               Pull Request Activity
             </h3>
             <div className="flex space-x-2 text-xs md:text-sm">
               <button
                 onClick={() => handlePRFilterChange("prs")}
-                className={`px-2 py-1 rounded ${
+                className={`px-2 py-1 rounded-md font-medium border text-xs ${
                   prFilter === "prs"
                     ? "bg-red-600 text-white"
-                    : "bg-gray-700 text-gray-300"
+                    : "bg-gray-800 text-gray-300"
                 }`}
               >
                 PRs Merged
               </button>
               <button
                 onClick={() => handlePRFilterChange("branches")}
-                className={`px-2 py-1 rounded ${
+                className={`px-2 py-1 rounded-md font-medium border text-xs ${
                   prFilter === "branches"
                     ? "bg-green-600 text-white"
-                    : "bg-gray-700 text-gray-300"
+                    : "bg-gray-800 text-gray-300"
                 }`}
               >
                 Branches
@@ -206,10 +203,12 @@ const RepoMetricsComponent = () => {
             </div>
           </div>
 
-          <div className="h-64 md:h-80">
+          <div className="h-64 md:h-80 lg:h-96">
             {prFilter === "branches" && !hasBranchActivity ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <p>No branch creation activity in this period.</p>
+              <div className="flex items-center justify-center h-full text-secondary">
+                <p className="font-semibold">
+                  No branch creation activity in this period.
+                </p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -219,14 +218,23 @@ const RepoMetricsComponent = () => {
                       ? safeMetrics.prMergeData
                       : branchActivityData
                   }
-                  margin={{ top: 5, right: 10, left: 0, bottom: 20 }}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: 0,
+                    bottom: 20,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="rgba(107, 114, 128, 0.3)"
                   />
-                  <XAxis dataKey="date" tick={{ fill: "#e5e7eb" }} />
-                  <YAxis tick={{ fill: "#e5e7eb" }} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: "#e5e7eb", fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis tick={{ fill: "#e5e7eb", fontSize: 12 }} />
                   <Tooltip className="recharts-custom-tooltip" />
                   <Legend wrapperStyle={{ paddingTop: 10 }} />
                   {prFilter === "prs" && (
@@ -253,43 +261,58 @@ const RepoMetricsComponent = () => {
             )}
           </div>
 
-          <div className="flex justify-between mt-4 text-sm">
-            <div className="text-center px-3 py-2 bg-gray-800 rounded summary-stat">
-              <div className="text-red-400 font-bold">{totalPRsMerged}</div>
-              <div className="text-gray-400">Total PRs</div>
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4 text-sm">
+            <div className="text-center px-4 py-3 bg-background rounded summary-stat border border-border">
+              <div className="text-red-400 font-semibold text-lg">
+                {totalPRsMerged}
+              </div>
+              <div className="text-secondary font-semibold">Total PRs</div>
             </div>
-            <div className="text-center px-3 py-2 bg-gray-800 rounded summary-stat">
-              <div className="text-green-500 font-bold">{branchesCreated}</div>
-              <div className="text-gray-400">Branches</div>
+            <div className="text-center px-4 py-3 bg-background rounded summary-stat border border-border">
+              <div className="text-green-500 font-semibold text-lg">
+                {branchesCreated}
+              </div>
+              <div className="text-secondary font-semibold">Branches</div>
             </div>
           </div>
         </div>
+        <div className="hidden xl:block w-px bg-border absolute left-1/2 top-0 bottom-0 transform -translate-x-1/2"></div>
 
-        {/* Second Chart - Time to Merge */}
-        <div className="bg-cardBg p-4 rounded-lg shadow slide-in">
+        <div className="bg-cardBg p-4 md:p-6 rounded-lg shadow-sm border border-border slide-in xl:border-l-2 xl:border-l-border xl:pl-8">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-primary">
+            <h3 className="text-lg md:text-xl font-semibold text-primary">
               Merge Time Analysis
             </h3>
           </div>
 
-          <div className="h-64 md:h-80">
+          <div className="h-64 md:h-80 lg:h-96">
             {!hasTimeData ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <p>No merge time data available for this repository.</p>
+              <div className="flex items-center justify-center h-full text-secondary">
+                <p className="font-semibold">
+                  No merge time data available for this repository.
+                </p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={safeMetrics.timeToMergeData}
-                  margin={{ top: 5, right: 10, left: 0, bottom: 20 }}
+                  margin={{
+                    top: 5,
+                    right: 10,
+                    left: 0,
+                    bottom: 20,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="rgba(107, 114, 128, 0.3)"
                   />
-                  <XAxis dataKey="date" tick={{ fill: "#e5e7eb" }} />
-                  <YAxis tick={{ fill: "#e5e7eb" }} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: "#e5e7eb", fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis tick={{ fill: "#e5e7eb", fontSize: 12 }} />
                   <Tooltip className="recharts-custom-tooltip" />
                   <Legend wrapperStyle={{ paddingTop: 10 }} />
                   <Line
@@ -305,16 +328,22 @@ const RepoMetricsComponent = () => {
             )}
           </div>
 
-          <div className="flex justify-between mt-4 text-sm">
-            <div className="text-center px-3 py-2 bg-gray-800 rounded summary-stat">
-              <div className="text-blue-500 font-bold">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4 text-sm">
+            <div className="text-center px-4 py-3 bg-background rounded summary-stat border border-border">
+              <div className="text-blue-500 font-semibold text-lg">
                 {avgTimeToMerge} days
               </div>
-              <div className="text-gray-400">Avg Time to Merge</div>
+              <div className="text-secondary font-semibold">
+                Avg Time to Merge
+              </div>
             </div>
-            <div className="text-center px-3 py-2 bg-gray-800 rounded summary-stat">
-              <div className="text-blue-400 font-bold">{totalPRsMerged}</div>
-              <div className="text-gray-400">Total PRs Merged</div>
+            <div className="text-center px-4 py-3 bg-background rounded summary-stat border border-border">
+              <div className="text-blue-400 font-semibold text-lg">
+                {totalPRsMerged}
+              </div>
+              <div className="text-secondary font-semibold">
+                Total PRs Merged
+              </div>
             </div>
           </div>
         </div>
