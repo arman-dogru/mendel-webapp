@@ -21,28 +21,18 @@ function HomePage() {
       try {
         setLoading(true);
         const authenticated = await checkAuthStatus();
-
-        if (!authenticated) {
+        if (!authenticated.isAuthenticated) {
           navigate("/");
           return;
         }
         setIsAuthenticated(true);
 
-        try {
-          const data = await getUserRepos();
-          setRepos(data);
-          setFilteredRepos(data);
-          setLoading(false);
-        } catch (repoError) {
-          // Check if we need to redirect to permissions page
-          if (repoError.redirectTo === "/repo-permissions") {
-            navigate("/repo-permissions");
-            return;
-          }
-          throw repoError;
-        }
+        const data = await getUserRepos();
+        setRepos(data);
+        setFilteredRepos(data);
+        setLoading(false);
       } catch (err) {
-        setError("Failed to load repositories.");
+        console.error("Error in checkAuthAndFetchRepos:", err);
         setError(handleApiError(err));
         setLoading(false);
       }

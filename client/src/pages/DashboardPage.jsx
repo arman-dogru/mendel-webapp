@@ -1,8 +1,6 @@
-// pages/DashboardPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar/Navbar";
-import GitTreeComponent from "../components/GitTree/GitTreeComponent";
 import Issues from "../components/Issues/IssuesComponent";
 import PRs from "../components/PRs/PRs";
 import CodeAnalysisComponent from "../components/CodeAnalysis/CodeAnalysisComponent";
@@ -17,8 +15,8 @@ const DashboardPage = () => {
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get("tab") || "Branches";
-  const validTabs = ["Dashboards", "Branches", "PRs", "Issues", "Analysis"];
+  const initialTab = queryParams.get("tab") || "Dashboards";
+  const validTabs = ["Dashboards", "PRs", "Issues", "Analysis"];
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialTab) ? initialTab : "Branches"
   );
@@ -54,8 +52,6 @@ const DashboardPage = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "Branches":
-        return <GitTreeComponent repo={repo} />;
       case "Issues":
         return <Issues repo={repo} />;
       case "Analysis":

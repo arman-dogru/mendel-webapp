@@ -475,7 +475,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                           sx={{
                             color: "#ffffff",
                             "&:hover": { color: "#e5e7eb" },
-                          }} // White, hover to light gray
+                          }}
                         >
                           <svg
                             className="w-5 h-5"
