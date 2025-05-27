@@ -4,7 +4,6 @@ import { FaUserCircle } from "react-icons/fa";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../utils/api";
-import "./HomePageNavbar.css";
 
 function HomePageNavbar() {
   const navigate = useNavigate();
@@ -41,45 +40,53 @@ function HomePageNavbar() {
   };
 
   return (
-    <header className="flex h-[var(--header-height)] items-center justify-between border-b border-border bg-background px-7 md:px-12 max-w-svw overflow-x-scroll md:overflow-x-hidden overflow-y-hidden py-4 sticky top-0 z-10">
-      <div className="flex items-center space-x-2">
+    <header className="sticky top-0 z-10 flex h-16 min-h-[64px] w-full items-center justify-between border-b border-border bg-background px-3 py-2 sm:px-4 md:px-6 lg:px-8 xl:px-12">
+      {/* Logo Section */}
+      <div className="flex items-center space-x-1 sm:space-x-2">
         <img
           src="/MENDEL_LAB_LOGO-nobackground.png"
           alt="Mendel Lab Logo"
-          className="h-6 w-6"
+          className="h-6 w-6 cursor-pointer object-contain bg-gray-900 sm:h-7 sm:w-7 md:h-8 md:w-8"
           onClick={handleLogoClick}
-          style={{ cursor: "pointer" }}
         />
         <span
-          className="text-sm font-semibold text-textPrimary tracking-wide rounded-md px-4 py-2"
+          className="cursor-pointer rounded-md px-2 py-1 text-xs font-semibold tracking-wide text-textPrimary transition-colors duration-200 hover:bg-accent hover:text-accent-foreground sm:px-3 sm:py-2 sm:text-sm md:text-base"
           onClick={handleLogoClick}
-          style={{ cursor: "pointer" }}
         >
           MENDEL
         </span>
       </div>
-      <div className="flex items-center space-x-3">
+
+      {/* Action Buttons Section */}
+      <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
+        {/* Notifications Button */}
         <button
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground size-9"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors duration-200 hover:bg-accent hover:text-accent-foreground sm:h-9 sm:w-9 md:h-10 md:w-10"
           aria-label="Notifications"
         >
-          <IoNotificationsOutline className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-textSecondary hover:text-accent-foreground transition-colors duration-200" />{" "}
+          <IoNotificationsOutline className="h-4 w-4 text-textSecondary transition-colors duration-200 hover:text-accent-foreground sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </button>
+
+        {/* Settings Button */}
         <button
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground size-9"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors duration-200 hover:bg-accent hover:text-accent-foreground sm:h-9 sm:w-9 md:h-10 md:w-10"
           aria-label="Settings"
         >
-          <IoSettingsOutline className="h-2 w-2 md:h-5 md:w-5 lg:h-6 lg:w-6 text-textSecondary hover:text-accent-foreground transition-colors duration-200" />{" "}
+          <IoSettingsOutline className="h-4 w-4 text-textSecondary transition-colors duration-200 hover:text-accent-foreground sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </button>
+
+        {/* Profile Button */}
         <button
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground size-8 relative rounded-full"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 hover:bg-accent hover:text-accent-foreground sm:h-9 sm:w-9 md:h-10 md:w-10"
           onClick={handleProfileClick}
           aria-controls={open ? "profile-menu" : undefined}
           aria-haspopup="true"
           aria-expanded={open ? "true" : undefined}
         >
-          <FaUserCircle className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-textSecondary hover:text-accent-foreground transition-colors duration-200" />
+          <FaUserCircle className="h-4 w-4 text-textSecondary transition-colors duration-200 hover:text-accent-foreground sm:h-5 sm:w-5 md:h-6 md:w-6" />
         </button>
+
+        {/* Profile Menu */}
         <Menu
           id="profile-menu"
           anchorEl={anchorEl}
@@ -96,11 +103,22 @@ function HomePageNavbar() {
             vertical: "top",
             horizontal: "right",
           }}
+          slotProps={{
+            paper: {
+              className: "mt-1 min-w-[120px]",
+            },
+          }}
         >
-          <MenuItem className="text-sm" onClick={handleProfileMenuClick}>
+          <MenuItem
+            className="text-sm px-4 py-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onClick={handleProfileMenuClick}
+          >
             Profile
           </MenuItem>
-          <MenuItem className="text-sm" onClick={handleLogout}>
+          <MenuItem
+            className="text-sm px-4 py-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+            onClick={handleLogout}
+          >
             Logout
           </MenuItem>
         </Menu>
