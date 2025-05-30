@@ -56,7 +56,7 @@ import ExportReportButton from "../ExportReportButton/ExportReportButtonComponen
 const getCategoryIcon = (category) => {
   const iconProps = {
     fontSize: "small",
-    className: category === "Readability" ? "text-white" : "",
+    className: "font-semibold",
   };
   switch (category) {
     case "Potential Bug":
@@ -401,7 +401,7 @@ const CodeAnalysisComponent = ({ repo }) => {
     ) {
       if (activeFilters.category || activeFilters.severity) {
         return (
-          <Typography className="text-center mt-4 text-[var(--text-secondary)]">
+          <Typography className="text-center mt-4 font-semibold text-sm sm:text-base text-[var(--text-secondary)]">
             No issues match the current filter
             {activeFilters.category && activeFilters.severity ? "s" : ""}.
             {activeFilters.category && ` (Category: ${activeFilters.category})`}
@@ -424,7 +424,15 @@ const CodeAnalysisComponent = ({ repo }) => {
 
     return (
       <Box className="mt-6">
-        <Typography className="text-xl font-semibold text-[var(--text-primary)] mb-4">
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{
+            color: "var(--text-primary)",
+            fontWeight: 400, // semibold
+          }}
+          className="mt-4"
+        >
           {!activeFilters.category && !activeFilters.severity
             ? "Identified Issues"
             : "Filtered Issues"}
@@ -440,13 +448,17 @@ const CodeAnalysisComponent = ({ repo }) => {
           {filteredIssuesData.map((file) => (
             <Box
               key={file.filePath}
-              className="p-4 bg-[var(--card-bg)] border border-[var(--text-secondary)] rounded-lg shadow-sm transition-colors"
+              className="p-4 bg-[var(--card-bg)] border-t border-[var(--text-secondary)] shadow-sm transition-colors"
             >
               {/* File Header Row */}
               <Box className="flex justify-between items-center mb-3 pb-2 border-b border-[var(--card-bg-hover)]">
                 <Typography
-                  className="text-lg font-medium text-[var(--text-primary)] truncate"
+                  className="text-xl font-semibold text-[var(--text-primary)]"
                   title={file.filePath}
+                  sx={{
+                    fontWeight: "var(--font-weight-semibold)",
+                    fontSize: "1.25rem",
+                  }}
                 >
                   {file.filePath} ({file.issues.length})
                 </Typography>
@@ -459,9 +471,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                           href={file.githubUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          sx={{
-                            color: "#ffffff",
-                          }} // White, hover to light gray
+                          sx={{ color: "#ffffff" }}
                         >
                           <LaunchIcon fontSize="small" />
                         </IconButton>
@@ -475,7 +485,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                           sx={{
                             color: "#ffffff",
                             "&:hover": { color: "#e5e7eb" },
-                          }} // White, hover to light gray
+                          }}
                         >
                           <svg
                             className="w-5 h-5"
@@ -503,13 +513,13 @@ const CodeAnalysisComponent = ({ repo }) => {
                 {file.issues.map((issue, issueIndex) => (
                   <Box
                     key={issueIndex}
-                    className="flex items-start gap-2 cursor-pointer hover:bg-[var(--button-bg)] p-2 rounded border border-[var(--text-secondary)] border-opacity-50"
+                    className="flex items-start gap-2 cursor-pointer p-2 rounded border border-[var(--text-secondary)] border-opacity-50 hover:border-[var(--text-primary)]"
                     onClick={() => handleIssueClick(file, issue)}
                   >
-                    <Box className="flex-shrink-0 mt-1">
+                    <Box className="flex-shrink-0">
                       {getCategoryIcon(issue.category)}
                     </Box>
-                    <Typography className="text-sm text-[var(--text-primary)]">
+                    <Typography className="text-sm font-semibold text-[var(--text-primary)]">
                       {issue.description}
                     </Typography>
                   </Box>
@@ -524,9 +534,7 @@ const CodeAnalysisComponent = ({ repo }) => {
 
   const IssueDetailModal = ({ open, onClose, issue, file }) => {
     const [comment, setComment] = useState("");
-    const [chatHistory, setChatHistory] = useState([]); // State for chat messages
-
-    // Initialize chat with a default message when the modal opens
+    const [chatHistory, setChatHistory] = useState([]);
     useEffect(() => {
       if (open) {
         setChatHistory([
@@ -543,8 +551,6 @@ const CodeAnalysisComponent = ({ repo }) => {
     if (!issue || !file) return null;
 
     const severityProps = getSeverityProps(issue.severity);
-
-    // Handle sending a message
     const handleSendMessage = () => {
       if (!comment.trim()) return;
 
@@ -554,10 +560,8 @@ const CodeAnalysisComponent = ({ repo }) => {
         timestamp: new Date().toLocaleTimeString(),
       };
 
-      // Add user message to chat history
       setChatHistory((prev) => [...prev, userMessage]);
 
-      // Simulate a bot response (for now, a static response)
       const botResponse = {
         sender: "bot",
         message:
@@ -646,17 +650,16 @@ const CodeAnalysisComponent = ({ repo }) => {
           <Box className="flex flex-wrap gap-2 mb-4">
             {issue.category && (
               <Chip
-                icon={
-                  <span className="ml-2">
-                    {getCategoryIcon(issue.category)}
-                  </span>
-                }
+                icon={getCategoryIcon(issue.category)}
                 label={issue.category}
                 size="small"
                 sx={{
-                  backgroundColor: "var(--card-bg-hover)",
-                  color: "#ffffff",
-                  "& .MuiChip-icon": { color: "#ffffff" },
+                  backgroundColor: "var(--button-bg)",
+                  color: "#000000",
+                  "& .MuiChip-icon": {
+                    color: "#000000",
+                    marginLeft: "8px",
+                  },
                   paddingX: "8px",
                   paddingY: "4px",
                   borderRadius: "9999px",
@@ -664,17 +667,20 @@ const CodeAnalysisComponent = ({ repo }) => {
               />
             )}
             <Chip
-              icon={<span className="ml-2">{severityProps.icon}</span>}
+              icon={severityProps.icon}
               label={issue.severity || "Unknown"}
               size="small"
               variant="outlined"
               sx={{
                 borderColor: `${severityProps.color}.main`,
-                color: "#ffffff",
-                "& .MuiChip-icon": { color: "#ffffff" },
+                backgroundColor: "var(--button-bg)",
+                color: "#000000",
+                "& .MuiChip-icon": {
+                  color: "#000000",
+                  marginLeft: "8px",
+                },
                 paddingX: "8px",
                 paddingY: "4px",
-                borderRadius: "9999px",
               }}
             />
             {issue.line && (
@@ -682,8 +688,8 @@ const CodeAnalysisComponent = ({ repo }) => {
                 label={`Line ${issue.line}`}
                 size="small"
                 sx={{
-                  backgroundColor: "var(--card-bg-hover)",
-                  color: "#ffffff",
+                  backgroundColor: "var(--button-bg)",
+                  color: "#000000",
                   paddingX: "8px",
                   paddingY: "4px",
                   borderRadius: "9999px",
@@ -941,29 +947,21 @@ const CodeAnalysisComponent = ({ repo }) => {
         elevation={2}
         sx={{ p: 2, mb: 3, backgroundColor: "var(--card-bg)" }}
       >
-        <Typography
-          variant="h6"
-          gutterBottom
-          sx={{ color: "var(--text-primary)" }}
-        >
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
           Issue Dashboard
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{ color: "var(--text-secondary)", mb: 2 }}
-        >
+        </h2>
+
+        <p className="text-[var(--text-secondary)] text-sm font-normal mb-4">
           Found {dashboardData.totalIssues} total issues across{" "}
           {dashboardData.filesWithIssues} files. Click categories and/or
           severities to filter the list.
-        </Typography>
+        </p>
+
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <Typography
-              variant="subtitle1"
-              sx={{ color: "var(--text-secondary)", mb: 1 }}
-            >
+            <p className="text-[var(--text-secondary)] text-base font-semibold mb-2">
               By Category
-            </Typography>
+            </p>
             {categories.map(([category, count]) => (
               <CardActionArea
                 key={category}
@@ -1020,12 +1018,10 @@ const CodeAnalysisComponent = ({ repo }) => {
             ))}
           </Grid>
           <Grid item xs={12} md={6}>
-            <Typography
-              variant="subtitle1"
-              sx={{ color: "var(--text-secondary)", mb: 1 }}
-            >
+            <p className="text-[var(--text-secondary)] text-base font-semibold mb-2">
               By Severity
-            </Typography>
+            </p>
+
             {severities.map(([severity, count]) => {
               const severityProps = getSeverityProps(severity);
               return (
@@ -1067,7 +1063,13 @@ const CodeAnalysisComponent = ({ repo }) => {
                         <Box sx={{ display: "flex", mr: 1 }}>
                           {severityProps.icon}
                         </Box>
-                        <Typography variant="body2" sx={{ color: "inherit" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "inherit",
+                            fontWeight: "var(--font-weight-semibold)",
+                          }}
+                        >
                           {severity}
                         </Typography>
                       </Box>
@@ -1076,7 +1078,6 @@ const CodeAnalysisComponent = ({ repo }) => {
                         size="small"
                         variant="filled"
                         sx={{
-                          fontWeight: "bold",
                           backgroundColor: `${severityProps.color}.main`,
                           color: `${severityProps.color}.contrastText`,
                         }}
@@ -1096,10 +1097,14 @@ const CodeAnalysisComponent = ({ repo }) => {
               {activeFilters.category && (
                 <div
                   className="flex items-center rounded-full px-3 py-1 text-sm text-white"
-                  style={{ backgroundColor: "#ff7770" }}
+                  style={{
+                    backgroundColor: "var(--button-bg)",
+                    color: "black",
+                    fontWeight: "var(--font-weight-semibold)",
+                  }}
                 >
                   <span className="mr-2 flex items-center">
-                    <span className="flex h-5 w-5 items-center justify-center text-white">
+                    <span className="flex h-5 w-5 items-center justify-center text-black">
                       {getCategoryIcon(activeFilters.category)}
                     </span>
                   </span>
@@ -1108,7 +1113,19 @@ const CodeAnalysisComponent = ({ repo }) => {
                     onClick={() =>
                       handleFilterClick("category", activeFilters.category)
                     }
-                    className="ml-1 flex h-5 w-5 items-center justify-center rounded-full hover:bg-red-400"
+                    className="ml-1 flex h-5 w-5 items-center justify-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "var(--button-bg)",
+                      color: "black",
+                    }}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "var(--button-hover-bg)")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "var(--button-bg)")
+                    }
                   >
                     <CloseIcon fontSize="small" />
                   </button>
@@ -1118,19 +1135,36 @@ const CodeAnalysisComponent = ({ repo }) => {
               {activeFilters.severity && (
                 <div
                   className="flex items-center rounded-full px-3 py-1 text-sm text-white"
-                  style={{ backgroundColor: "#ff7777" }}
+                  style={{
+                    backgroundColor: "var(--button-bg)",
+                    color: "black",
+                    fontWeight: "var(--font-weight-semibold)",
+                  }}
                 >
                   <span className="mr-2 flex items-center">
-                    <span className="flex h-5 w-5 items-center justify-center text-white">
+                    <span className="flex h-5 w-5 items-center justify-center text-black">
                       {getSeverityProps(activeFilters.severity).icon}
                     </span>
                   </span>
+
                   <span className="mr-1">{activeFilters.severity}</span>
                   <button
                     onClick={() =>
                       handleFilterClick("severity", activeFilters.severity)
                     }
-                    className="ml-1 flex h-5 w-5 items-center justify-center rounded-full hover:bg-red-400"
+                    className="ml-1 flex h-5 w-5 items-center justify-center rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "var(--button-bg)",
+                      color: "black",
+                    }}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "var(--button-hover-bg)")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        "var(--button-bg)")
+                    }
                   >
                     <CloseIcon fontSize="small" />
                   </button>
@@ -1141,7 +1175,7 @@ const CodeAnalysisComponent = ({ repo }) => {
                 onClick={() =>
                   setActiveFilters({ category: null, severity: null })
                 }
-                className="text-sm font-medium text-blue-500 hover:underline"
+                className="text-sm font-semibold text-blue-500 hover:underline"
               >
                 Clear All Filters
               </button>
@@ -1172,9 +1206,16 @@ const CodeAnalysisComponent = ({ repo }) => {
         }}
       >
         {" "}
-        <Typography variant="h5" sx={{ color: "var(--text-primary)" }}>
+        <Typography
+          variant="h5"
+          sx={{
+            color: "var(--text-primary)",
+            fontWeight: 600, // semi-bold
+            fontSize: { xs: "1.25rem", sm: "1.5rem" },
+          }}
+        >
           Codebase Analysis
-        </Typography>{" "}
+        </Typography>
         <Box sx={{ display: "flex", gap: 1 }}>
           {" "}
           <Button
@@ -1256,36 +1297,48 @@ const CodeAnalysisComponent = ({ repo }) => {
           mb: 3,
         }}
       >
-        <Button
-          variant="contained"
+        <button
           onClick={handleScan}
           disabled={loading || !owner || !repoName}
-          sx={{
-            position: "relative",
-            backgroundColor: "var(--button-bg)",
-            "&:hover": { backgroundColor: "var(--button-hover-bg)" },
-          }}
+          className={`
+            relative px-4 py-2 rounded 
+            bg-[var(--button-bg)] 
+            text-black 
+            font-semibold 
+            hover:bg-[var(--button-hover-bg)] 
+            disabled:opacity-50 disabled:cursor-not-allowed
+          `}
         >
           {loading ? (
             <>
-              <span style={{ visibility: "hidden" }}>Scanning...</span>{" "}
-              {/* Placeholder for size */}
-              <CircularProgress
-                size={24}
-                sx={{
-                  color: "primary.contrastText", // Use contrast text color
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  marginTop: "-12px",
-                  marginLeft: "-12px",
-                }}
-              />
+              <span className="invisible">Scanning...</span>
+              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <svg
+                  className="animate-spin h-5 w-5 text-black"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  ></path>
+                </svg>
+              </span>
             </>
           ) : (
             "Scan Latest Commit"
           )}
-        </Button>
+        </button>
 
         {/* Add the Export Report button here */}
         <ExportReportButton
@@ -1313,6 +1366,7 @@ const CodeAnalysisComponent = ({ repo }) => {
           {renderSummary()}
           {renderDashboard()}
           {renderIssueList()}
+
           {selectedIssue && (
             <IssueDetailModal
               open={isModalOpen}

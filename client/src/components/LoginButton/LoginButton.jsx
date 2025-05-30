@@ -7,6 +7,7 @@ function LoginButton() {
       variant="contained"
       startIcon={<GitHubIcon />}
       href={`${VITE_BASE_URL}/api/auth/login`}
+      className="font-semibold"
       sx={{
         backgroundColor: "#000000",
         color: "#ffffff",

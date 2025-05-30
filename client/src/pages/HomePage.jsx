@@ -21,28 +21,18 @@ function HomePage() {
       try {
         setLoading(true);
         const authenticated = await checkAuthStatus();
-
-        if (!authenticated) {
+        if (!authenticated.isAuthenticated) {
           navigate("/");
           return;
         }
         setIsAuthenticated(true);
 
-        try {
-          const data = await getUserRepos();
-          setRepos(data);
-          setFilteredRepos(data);
-          setLoading(false);
-        } catch (repoError) {
-          // Check if we need to redirect to permissions page
-          if (repoError.redirectTo === "/repo-permissions") {
-            navigate("/repo-permissions");
-            return;
-          }
-          throw repoError;
-        }
+        const data = await getUserRepos();
+        setRepos(data);
+        setFilteredRepos(data);
+        setLoading(false);
       } catch (err) {
-        setError("Failed to load repositories.");
+        console.error("Error in checkAuthAndFetchRepos:", err);
         setError(handleApiError(err));
         setLoading(false);
       }
@@ -61,7 +51,9 @@ function HomePage() {
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-darkBg flex justify-center items-center">
-        <div className="text-textSecondary">Checking authentication...</div>
+        <div className="text-textSecondary text-sm">
+          Checking authentication...
+        </div>
       </div>
     );
   }
@@ -70,47 +62,35 @@ function HomePage() {
     <>
       <HomePageNavbar />
       <div className="max-w-7xl mx-auto p-4 sm:p-3 bg-darkBg text-textPrimary">
-        <h2 className="text-xl sm:text-lg font-bold mb-3">Your Repositories</h2>
-        <div className="mb-4">
-          <TextField
+        <h2 className="text-xl sm:text-lg font-bold mb-3 text-sm">
+          Your Repositories
+        </h2>
+        <div className="relative max-w-md w-full mb-6">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <SearchIcon className="text-textSecondary" />
+          </span>
+          <input
+            type="text"
             placeholder="Search repositories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            variant="outlined"
-            size="small"
-            sx={{
-              backgroundColor: "#2a2a2a",
-              borderRadius: "8px",
-              width: "100%",
-              maxWidth: "400px",
-              "& .MuiOutlinedInput-root": {
-                color: "#e0e0e0",
-                "& fieldset": { borderColor: "#4a4a4a" },
-                "&:hover fieldset": { borderColor: "#6a6a6a" },
-                "&.Mui-focused fieldset": { borderColor: "#ff5555" },
-              },
-              "& .MuiInputBase-input::placeholder": {
-                color: "#a0a0a0",
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "#a0a0a0" }} />
-                </InputAdornment>
-              ),
-            }}
+            className="w-full pl-10 pr-4 py-2 rounded-md bg-accent border border-border text-textPrimary placeholder-textSecondary font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
+
         {loading && (
-          <div className="text-center text-textSecondary">Loading...</div>
+          <div className="text-center text-textSecondary text-sm">
+            Loading...
+          </div>
         )}
-        {error && <div className="text-center text-red-500">{error}</div>}
+        {error && (
+          <div className="text-center text-red-500 text-sm">{error}</div>
+        )}
         {!loading && !error && filteredRepos.length > 0 && (
           <RepoCards repos={filteredRepos} />
         )}
         {!loading && !error && filteredRepos.length === 0 && (
-          <div className="text-center text-textSecondary">
+          <div className="text-center text-textSecondary text-sm">
             No repositories found.
           </div>
         )}

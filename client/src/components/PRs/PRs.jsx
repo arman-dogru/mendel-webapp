@@ -8,6 +8,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import "./PRs.css";
 import { handleApiError } from "../../utils/errorHandler";
+import PRDetailChatbot from "../PRDetailChatbot/PRDetailChatbot";
 
 const PRs = () => {
   const { repoFullName } = useParams();
@@ -15,7 +16,6 @@ const PRs = () => {
 
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
   const [owner, repoName] = repo ? repo.split("/") : ["", ""];
-
   const [prs, setPrs] = useState({
     open: [],
     needsYourReview: [],
@@ -26,11 +26,13 @@ const PRs = () => {
     merged: [],
   });
   const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState("master");
+  const [selectedBranch, setSelectedBranch] = useState("");
   const [showBranchFilter, setShowBranchFilter] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedPR, setSelectedPR] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,7 +45,11 @@ const PRs = () => {
       setError(null);
 
       try {
-        const prResponse = await getRepoPRs(owner, repoName, selectedBranch);
+        const prResponse = await getRepoPRs(
+          owner,
+          repoName,
+          selectedBranch || null
+        );
         setPrs({
           open: prResponse.open || [],
           needsYourReview: prResponse.needsYourReview || [],
@@ -53,9 +59,10 @@ const PRs = () => {
           closed: prResponse.closed || [],
           merged: prResponse.merged || [],
         });
-
-        const branchResponse = await getRepoBranches(owner, repoName);
-        setBranches(branchResponse || []);
+        if (branches.length === 0) {
+          const branchResponse = await getRepoBranches(owner, repoName);
+          setBranches([{ name: "All Branches" }, ...(branchResponse || [])]);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(handleApiError(err));
@@ -65,15 +72,20 @@ const PRs = () => {
     };
 
     fetchData();
-  }, [owner, repoName, selectedBranch]);
+  }, [owner, repoName, selectedBranch, branches.length]);
 
   const toggleRow = (row) => {
     setExpandedRow((prev) => (prev === row ? null : row));
   };
 
   const handleBranchSelect = (branch) => {
-    setSelectedBranch(branch);
+    setSelectedBranch(branch === "All Branches" ? "" : branch);
     setShowBranchFilter(false);
+  };
+
+  const handlePRClick = (pr) => {
+    setSelectedPR(pr);
+    setIsModalOpen(true);
   };
 
   const PRList = ({ prs, title, rowKey }) => {
@@ -82,10 +94,10 @@ const PRs = () => {
     return (
       <div className="mb-4 pr-w-full mx-auto">
         <div
-          className="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 bg-cardBg hover:bg-[var(--card-bg-hover)]"
+          className="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 bg-[#17181a] hover:bg-[#1e1f22]"
           onClick={() => toggleRow(rowKey)}
         >
-          <h2 className="text-lg font-medium text-textPrimary">
+          <h2 className="text-lg font-semibold text-textPrimary">
             {prs.length} {title}
           </h2>
           <div className="flex items-center space-x-2">
@@ -100,7 +112,7 @@ const PRs = () => {
         {isExpanded && (
           <div className="mt-2 pr-animate-dropdown">
             {prs.length === 0 ? (
-              <p className="text-textSecondary pl-4 text-sm">
+              <p className="text-textSecondary pl-4 text-sm font-semibold">
                 No pull requests in this category.
               </p>
             ) : (
@@ -108,7 +120,8 @@ const PRs = () => {
                 {prs.map((pr) => (
                   <li
                     key={pr.id}
-                    className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover"
+                    className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover cursor-pointer"
+                    onClick={() => handlePRClick(pr)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -116,28 +129,27 @@ const PRs = () => {
                           href={pr.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline text-sm"
+                          className="text-blue-400 hover:underline text-sm font-semibold"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           #{pr.id} {pr.title}
                         </a>
-                        <p className="text-textSecondary text-xs mt-1">
+                        <p className="text-textSecondary text-xs mt-1 font-semibold">
                           Created by {pr.author} on{" "}
                           {new Date(pr.createdAt).toLocaleDateString()}
                         </p>
-                        <div className="mt-1">
-                          {pr.labels.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {pr.labels.map((label, index) => (
-                                <span
-                                  key={`${label}-${index}`}
-                                  className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded"
-                                >
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        {pr.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {pr.labels.map((label, index) => (
+                              <span
+                                key={`${label}-${index}`}
+                                className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded font-semibold"
+                              >
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {pr.comments > 0 ? (
@@ -145,17 +157,18 @@ const PRs = () => {
                             href={`${pr.url}#issuecomment`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline text-xs"
+                            className="text-blue-400 hover:underline text-xs font-semibold"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {pr.comments} 💬
                           </a>
                         ) : (
-                          <span className="text-textSecondary text-xs">
+                          <span className="text-textSecondary text-xs font-semibold">
                             {pr.comments} 💬
                           </span>
                         )}
                         {pr.mergedAt && (
-                          <p className="text-green-400 text-xs">
+                          <p className="text-green-400 text-xs font-semibold">
                             Merged on{" "}
                             {new Date(pr.mergedAt).toLocaleDateString()}
                           </p>
@@ -173,49 +186,30 @@ const PRs = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 bg-darkBg min-h-screen text-textPrimary">
+    <div className="p-4 sm:p-6 bg-darkBg text-textPrimary">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pr-w-full max-w-3xl mx-auto">
-        <div className="relative">
-          <Button
-            variant="contained"
+        <div className="relative w-full sm:w-auto flex justify-end">
+          <button
             onClick={() => setShowBranchFilter(!showBranchFilter)}
-            startIcon={<FilterListIcon />}
-            endIcon={
-              showBranchFilter ? (
-                <ExpandLessIcon fontSize="small" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" />
-              )
-            }
-            sx={{
-              backgroundColor: "var(--card-bg)",
-              color: "var(--text-primary)",
-              "&:hover": {
-                backgroundColor: "var(--card-bg-hover)",
-              },
-              padding: "8px 16px",
-              borderRadius: "8px",
-              textTransform: "none",
-              fontSize: "14px",
-              fontWeight: 500,
-            }}
+            className="flex items-center gap-2 border border-border text-primary bg-transparent hover:bg-accent hover:text-accent-foreground px-4 py-2 rounded-lg font-semibold text-sm transition-colors duration-200"
           >
-            Current branch: {selectedBranch}
-          </Button>
+            <FilterListIcon fontSize="small" />
+            {selectedBranch || "All Branches"}
+            {showBranchFilter ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </button>
+
           {showBranchFilter && (
-            <div
-              className="absolute left-0 mt-2 w-64 max-h-60 overflow-y-auto rounded-lg shadow-lg z-10 bg-cardBg pr-animate-dropdown" // Increased width from w-56 to w-64
-              style={{
-                scrollbarWidth: "thin",
-                scrollbarColor: "var(--text-secondary) var(--card-bg)",
-              }}
-            >
+            <div className="absolute left-0 mt-2 w-64 max-h-60 overflow-y-auto rounded-lg shadow-lg z-10 bg-cardBg pr-animate-dropdown">
               <ul className="py-1">
                 {branches.map((branch) => (
                   <li
                     key={branch.name}
                     onClick={() => handleBranchSelect(branch.name)}
-                    className="px-4 py-2 text-textPrimary hover:bg-[var(--card-bg-hover)] cursor-pointer transition-all duration-200 text-sm"
+                    className="px-4 py-2 text-textPrimary hover:bg-[var(--card-bg-hover)] cursor-pointer transition-all duration-200 text-sm font-semibold"
                   >
                     {branch.name}
                   </li>
@@ -227,12 +221,14 @@ const PRs = () => {
       </div>
 
       {loading && (
-        <p className="text-textSecondary text-sm">Loading pull requests...</p>
+        <p className="text-textSecondary text-sm font-semibold">
+          Loading pull requests...
+        </p>
       )}
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-400 text-sm font-semibold">{error}</p>}
 
       {!loading && !error && (
-        <div>
+        <>
           <PRList
             prs={prs.needsYourReview}
             title="Needs your review"
@@ -248,7 +244,15 @@ const PRs = () => {
             title="Merging and recently merged"
             rowKey="mergingAndMerged"
           />
-        </div>
+        </>
+      )}
+
+      {selectedPR && (
+        <PRDetailChatbot
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          pr={selectedPR}
+        />
       )}
     </div>
   );

@@ -1,50 +1,31 @@
 import React, { useState } from "react";
-import DownloadIcon from "@mui/icons-material/Download";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { jsPDF } from "jspdf";
-import {
-  Button,
-  CircularProgress,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Tooltip,
-} from "@mui/material";
 import Papa from "papaparse";
 
 const ExportReportButton = ({ analysisResult, disabled }) => {
   const [loading, setLoading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const toggleDropdown = () => {
+    if (!disabled) setDropdownOpen((prev) => !prev);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const closeDropdown = () => setDropdownOpen(false);
 
   const exportAsPDF = async () => {
-    handleClose();
+    closeDropdown();
     setLoading(true);
     try {
       const doc = new jsPDF();
-
-      // Add title and metadata
       const repoName = analysisResult?.repository || "Repository Analysis";
       const date = analysisResult?.scanTimestamp
         ? new Date(analysisResult.scanTimestamp).toLocaleString()
         : new Date().toLocaleString();
 
-      // Add title
       doc.setFontSize(22);
-      doc.setTextColor(255, 85, 85); // Using var(--button-bg) color
+      doc.setTextColor(255, 85, 85);
       doc.text("Code Analysis Report", 20, 20);
 
-      // Add repo and scan info
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text(`Repository: ${repoName}`, 20, 30);
@@ -66,7 +47,6 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
         51
       );
 
-      // Add summary
       const {
         filesAnalyzed = 0,
         filesSkipped = 0,
@@ -79,24 +59,19 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
       doc.text(`Files Skipped: ${filesSkipped}`, 20, 82);
       doc.text(`Files with Errors: ${filesErrored}`, 20, 89);
 
-      // Calculate issue statistics
       let totalIssues = 0;
       let issuesBySeverity = {};
       let issuesByCategory = {};
-
       analysisResult?.fileAnalyses?.forEach((file) => {
         if (file.status === "analyzed" && Array.isArray(file.issues)) {
           file.issues.forEach((issue) => {
             totalIssues++;
-
             if (issue.severity) {
-              const severity =
-                issue.severity.charAt(0).toUpperCase() +
+              const sev =
+                issue.severity[0].toUpperCase() +
                 issue.severity.slice(1).toLowerCase();
-              issuesBySeverity[severity] =
-                (issuesBySeverity[severity] || 0) + 1;
+              issuesBySeverity[sev] = (issuesBySeverity[sev] || 0) + 1;
             }
-
             if (issue.category) {
               issuesByCategory[issue.category] =
                 (issuesByCategory[issue.category] || 0) + 1;
@@ -105,18 +80,15 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
         }
       });
 
-      // Add issues overview
       doc.setFontSize(16);
       doc.text("Issues Overview", 20, 105);
       doc.setFontSize(12);
       doc.text(`Total Issues: ${totalIssues}`, 20, 115);
 
-      // Add severity breakdown
       let yPos = 130;
       doc.setFontSize(14);
       doc.text("Issues by Severity", 20, yPos);
       yPos += 10;
-
       Object.entries(issuesBySeverity).forEach(([severity, count]) => {
         doc.setFontSize(12);
         doc.text(`${severity}: ${count}`, 30, yPos);
@@ -124,79 +96,60 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
       });
 
       yPos += 5;
-
-      // Add category breakdown
       doc.setFontSize(14);
       doc.text("Issues by Category", 20, yPos);
       yPos += 10;
-
-      Object.entries(issuesByCategory).forEach(([category, count]) => {
+      Object.entries(issuesByCategory).forEach(([cat, count]) => {
         if (yPos > 270) {
           doc.addPage();
           yPos = 20;
         }
         doc.setFontSize(12);
-        doc.text(`${category}: ${count}`, 30, yPos);
+        doc.text(`${cat}: ${count}`, 30, yPos);
         yPos += 7;
       });
 
-      // Add detailed issues
       yPos += 10;
       doc.setFontSize(16);
       doc.text("Detailed Issues", 20, yPos);
       yPos += 10;
 
-      // Group issues by file
       analysisResult?.fileAnalyses?.forEach((file) => {
-        if (
-          file.status === "analyzed" &&
-          Array.isArray(file.issues) &&
-          file.issues.length > 0
-        ) {
+        if (file.status === "analyzed" && file.issues?.length > 0) {
           if (yPos > 270) {
             doc.addPage();
             yPos = 20;
           }
-
           doc.setFontSize(14);
-          doc.setTextColor(255, 85, 85); // red for file headers
+          doc.setTextColor(255, 85, 85);
           doc.text(file.filePath, 20, yPos);
           yPos += 7;
           doc.setTextColor(0, 0, 0);
 
-          file.issues.forEach((issue, index) => {
+          file.issues.forEach((issue, i) => {
             if (yPos > 270) {
               doc.addPage();
               yPos = 20;
             }
-
             doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            // Add line info if available
-            const lineInfo = issue.line ? `Line ${issue.line}: ` : "";
-            doc.text(`${index + 1}. ${lineInfo}${issue.description}`, 25, yPos);
+            const line = issue.line ? `Line ${issue.line}: ` : "";
+            doc.text(`${i + 1}. ${line}${issue.description}`, 25, yPos);
             yPos += 6;
-
             if (issue.severity) {
               doc.setFontSize(9);
               doc.setTextColor(100, 100, 100);
               doc.text(`Severity: ${issue.severity}`, 30, yPos);
               yPos += 5;
             }
-
             if (issue.category) {
-              doc.setFontSize(9);
-              doc.setTextColor(100, 100, 100);
               doc.text(`Category: ${issue.category}`, 30, yPos);
               yPos += 7;
             }
           });
-
           yPos += 5;
         }
       });
 
-      // Add footer
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -209,44 +162,35 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
         );
       }
 
-      // Save the PDF
       doc.save(
         `${repoName.replace(/\//g, "-")}-code-analysis-${
           new Date().toISOString().split("T")[0]
         }.pdf`
       );
     } catch (err) {
-      console.error("Failed to generate PDF report:", err);
-      alert("Failed to generate PDF report. See console for details.");
+      console.error("PDF error:", err);
+      alert("Failed to export PDF.");
     } finally {
       setLoading(false);
     }
   };
 
   const exportAsCSV = () => {
-    handleClose();
+    closeDropdown();
     setLoading(true);
     try {
-      // Prepare data for CSV
-      const rows = [];
-
-      // Add header row
-      rows.push([
-        "File Path",
-        "Line",
-        "Description",
-        "Category",
-        "Severity",
-        "Suggestion",
-      ]);
-
-      // Add data rows
+      const rows = [
+        [
+          "File Path",
+          "Line",
+          "Description",
+          "Category",
+          "Severity",
+          "Suggestion",
+        ],
+      ];
       analysisResult?.fileAnalyses?.forEach((file) => {
-        if (
-          file.status === "analyzed" &&
-          Array.isArray(file.issues) &&
-          file.issues.length > 0
-        ) {
+        if (file.status === "analyzed" && Array.isArray(file.issues)) {
           file.issues.forEach((issue) => {
             rows.push([
               file.filePath,
@@ -260,77 +204,77 @@ const ExportReportButton = ({ analysisResult, disabled }) => {
         }
       });
 
-      // Generate CSV
       const csv = Papa.unparse(rows);
-
-      // Create download link
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", url);
-
-      // Set filename
-      const repoName = analysisResult?.repository || "repository";
-      link.setAttribute(
-        "download",
-        `${repoName.replace(/\//g, "-")}-code-analysis-${
-          new Date().toISOString().split("T")[0]
-        }.csv`
-      );
-
-      // Trigger download
+      link.href = url;
+      link.download = `${(analysisResult?.repository || "repository").replace(
+        /\//g,
+        "-"
+      )}-code-analysis-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("Failed to generate CSV report:", err);
-      alert("Failed to generate CSV report. See console for details.");
+      console.error("CSV error:", err);
+      alert("Failed to export CSV.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <Button
-        variant="contained"
-        onClick={handleClick}
+    <div className="relative inline-block">
+      <button
+        onClick={toggleDropdown}
         disabled={disabled || loading || !analysisResult}
-        startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
-        sx={{
-          ml: { xs: 0, sm: 2 },
-          mb: { xs: 2, sm: 0 },
-          mt: { xs: 2, sm: 0 },
-          backgroundColor: "var(--button-bg)",
-          "&:hover": { backgroundColor: "var(--button-hover-bg)" },
-          position: "relative",
-        }}
+        className={`
+          px-4 py-2 rounded text-black font-semibold 
+          bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] 
+          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2
+        `}
       >
+        {loading && (
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8z"
+            />
+          </svg>
+        )}
         {loading ? "Exporting..." : "Export Report"}
-      </Button>
+      </button>
 
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "export-button",
-        }}
-      >
-        <MenuItem onClick={exportAsPDF}>
-          <ListItemIcon>
-            <PictureAsPdfIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Export as PDF</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={exportAsCSV}>
-          <ListItemIcon>
-            <FileDownloadIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Export as CSV</ListItemText>
-        </MenuItem>
-      </Menu>
-    </>
+      {dropdownOpen && (
+        <div
+          className="absolute z-10 mt-2 w-48 rounded shadow-lg bg-white border border-border text-sm text-black"
+          onMouseLeave={closeDropdown}
+        >
+          <div
+            onClick={exportAsPDF}
+            className="px-4 py-2 hover:bg-[var(--button-hover-bg)] cursor-pointer"
+          >
+            📄 Export as PDF
+          </div>
+          <div
+            onClick={exportAsCSV}
+            className="px-4 py-2 hover:bg-[var(--button-hover-bg)] cursor-pointer"
+          >
+            📄 Export as CSV
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
