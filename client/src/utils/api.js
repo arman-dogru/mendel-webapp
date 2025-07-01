@@ -153,12 +153,14 @@ export const getRepoContributors = async (owner, repo) => {
 };
 
 // --- Scan API ---
-export const scanRepository = async (owner, repo) => {
+export const scanRepository = async (owner, repo, branch = null) => {
   try {
     if (!owner || !repo) {
       throw new Error("Owner and repository name are required to start scan.");
     }
-    const response = await apiClient.post(`/api/scan/${owner}/${repo}`);
+    const response = await apiClient.post(`/api/scan/${owner}/${repo}`, {
+      branch: branch,
+    });
     return response.data;
   } catch (error) {
     console.error(`Error starting scan for ${owner}/${repo}:`, error);
@@ -195,14 +197,16 @@ export const getSpecificScan = async (scanId) => {
 };
 
 // --- Metrics & Permissions API (Ensure these use apiClient) ---
-export const getRepoMetrics = async (owner, repo) => {
+export const getRepoMetrics = async (owner, repo, params = {}) => {
   try {
     if (!owner || !repo) {
       throw new Error(
         "Owner and repository name are required to fetch metrics."
       );
     }
-    const response = await apiClient.get(`/api/repo/${owner}/${repo}/metrics`);
+    const response = await apiClient.get(`/api/repo/${owner}/${repo}/metrics`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error(
@@ -239,6 +243,121 @@ export const getPRComments = async (owner, repo, prNumber) => {
       `Error fetching comments for ${owner}/${repo}/pull/${prNumber}:`,
       error
     );
+    throw error;
+  }
+};
+
+export const getUserContributionBoxes = async (
+  owner,
+  repo,
+  contributor,
+  month
+) => {
+  try {
+    if (!owner || !repo || !contributor) {
+      throw new Error(
+        "Owner, repository, and contributor are required to fetch User Contribution Boxes."
+      );
+    }
+    let url = `/api/UserContribution/${owner}/${repo}/${contributor}/user_metrics`;
+    if (month) {
+      url += `?month=${encodeURIComponent(month)}`;
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+  }
+};
+// ADD THE NEW CHAT FUNCTION
+export const sendChatMessage = async (payload) => {
+  try {
+    // payload should be: { contextType, contextData, chatHistory, userMessage }
+    const response = await apiClient.post("/api/chat/interact", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error sending chat message:", error);
+
+    throw error;
+  }
+};
+
+export const getUserContributorActivityOverTime = async (
+  owner,
+  repo,
+  contributor,
+  timeframe
+) => {
+  try {
+    if (!owner || !repo || !contributor) {
+      throw new Error(
+        "Owner, repository, and contributor are required to fetch User Contributor Activity Over Time."
+      );
+    }
+    let url = `/api/UserContribution/${owner}/${repo}/contributors/${contributor}/activity`;
+    if (timeframe) {
+      url += `?timeframe=${encodeURIComponent(timeframe)}`;
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    throw error;
+  }
+};
+
+// Add this new function
+export const getPRDetails = async (owner, repo, prNumber) => {
+  try {
+    if (!owner || !repo || !prNumber) {
+      throw new Error("Owner, repo, and PR number are required.");
+    }
+    const response = await apiClient.get(
+      `/api/repo/${owner}/${repo}/pull-requests/${prNumber}/details`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching details for PR #${prNumber}:`, error);
+    throw error;
+  }
+};
+
+export const getDeveloperImpactScore = async (
+  owner,
+  repo,
+  developer,
+  timeframe
+) => {
+  try {
+    if (!owner || !repo || !developer) {
+      throw new Error(
+        "Owner, repository, and developer are required to fetch developer impact score."
+      );
+    }
+
+    const payload = {
+      repoName: `${owner}/${repo}`,
+      username: developer,
+      timeframe,
+    };
+
+    const response = await apiClient.post("/api/dev-impact/calculate", payload);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching developer impact score:", {
+      endpoint: "/api/dev-impact",
+      params: { owner, repo, developer, timeframe },
+      status: error.response?.status,
+      data: error.response?.data,
+    });
     throw error;
   }
 };

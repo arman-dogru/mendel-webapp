@@ -27,12 +27,11 @@ function Navbar({ setActiveTab, activeTab, repo }) {
 
   const handleNavigation = (path, tab) => {
     setActiveTab(tab);
-    const currentParams = new URLSearchParams(location.search);
-    currentParams.set("tab", tab);
-    navigate(`${location.pathname}?${currentParams.toString()}`, {
+    const repoPath = repo ? `/${encodeURIComponent(repo)}` : "";
+    navigate(`/dashboard${repoPath}?tab=${tab}`, {
       replace: true,
     });
-    setMobileMenuOpen(false); // Close mobile menu after navigation
+    setMobileMenuOpen(false);
   };
 
   const handleLogoClick = () => {

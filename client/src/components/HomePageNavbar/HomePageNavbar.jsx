@@ -46,7 +46,7 @@ function HomePageNavbar() {
         <img
           src="/MENDEL_LAB_LOGO-nobackground.png"
           alt="Mendel Lab Logo"
-          className="h-6 w-6 cursor-pointer object-contain bg-gray-900 sm:h-7 sm:w-7 md:h-8 md:w-8"
+          className="h-6 w-6 cursor-pointer object-contain  sm:h-7 sm:w-7 md:h-8 md:w-8"
           onClick={handleLogoClick}
         />
         <span

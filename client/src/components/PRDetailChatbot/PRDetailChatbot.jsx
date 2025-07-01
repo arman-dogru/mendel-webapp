@@ -1,16 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getPRComments } from "../../utils/api";
+import { getPRComments, sendChatMessage } from "../../utils/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const PRDetailChatbot = ({ open, onClose, pr }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [comment, setComment] = useState("");
   const [prComments, setPRComments] = useState([]);
   const [error, setError] = useState(null);
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const chatContainerRef = useRef(null);
-  const [owner, repoName] = pr?.url ? pr.url.split("/").slice(3, 5) : ["", ""];
+  const [owner, repoName] = pr?.html_url
+    ? pr.html_url.split("/").slice(3, 5)
+    : ["", ""];
+
   useEffect(() => {
     if (open) {
+      setIsBotTyping(false);
       setChatHistory([
         {
           sender: "bot",
@@ -30,13 +39,13 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
   // Fetch PR comments
   useEffect(() => {
     const fetchComments = async () => {
-      if (!open || !owner || !repoName || !pr?.id) {
-        setError("Missing repository or PR information.");
+      if (!open || !owner || !repoName || !pr?.number) {
+        // setError("Missing repository or PR information."); // This can be noisy, let's keep it silent.
         return;
       }
 
       try {
-        const comments = await getPRComments(owner, repoName, pr.id);
+        const comments = await getPRComments(owner, repoName, pr.number);
         const formattedComments = comments.map((c) => ({
           ...c,
           timestamp: new Date(c.createdAt).toLocaleTimeString([], {
@@ -46,9 +55,8 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
         }));
         setPRComments(formattedComments);
         setError(null);
-        console.log(
-          `Fetched ${formattedComments.length} comments, PR object reports ${pr.comments} comments`
-        );
+        // Cleaned up the noisy console.log
+        // console.log(`Fetched ${formattedComments.length} comments.`);
       } catch (error) {
         console.error("Error fetching PR comments:", error);
         setError("Failed to load comments. Please try again later.");
@@ -56,8 +64,10 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
       }
     };
 
-    fetchComments();
-  }, [open, owner, repoName, pr?.id]);
+    if (open) {
+      fetchComments();
+    }
+  }, [open, owner, repoName, pr?.number]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -71,8 +81,8 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
 
   if (!pr) return null;
 
-  const handleSendMessage = () => {
-    if (!comment.trim()) return;
+  const handleSendMessage = async () => {
+    if (!comment.trim() || isBotTyping) return;
 
     const userMessage = {
       sender: "user",
@@ -83,22 +93,43 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
       }),
     };
 
-    setChatHistory((prev) => [...prev, userMessage]);
+    const newChatHistory = [...chatHistory, userMessage];
+    setChatHistory(newChatHistory);
+    const userQuestion = comment;
+    setComment("");
+    setIsBotTyping(true);
 
-    setTimeout(() => {
+    try {
+      const response = await sendChatMessage({
+        contextType: "pr",
+        contextData: { pr },
+        chatHistory: newChatHistory,
+        userMessage: userQuestion,
+      });
+
       const botResponse = {
         sender: "bot",
-        message:
-          "Thanks for your message! I'm analyzing the pull request. Could you provide more details about what specific aspect you'd like me to focus on?",
+        message: response.message,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         }),
       };
       setChatHistory((prev) => [...prev, botResponse]);
-    }, 1000);
-
-    setComment("");
+    } catch (error) {
+      console.error("Chat API error:", error);
+      const errorResponse = {
+        sender: "bot",
+        message: "Sorry, I encountered an error. Please try again later.",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+      setChatHistory((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsBotTyping(false);
+    }
   };
 
   const modalVariants = {
@@ -132,7 +163,7 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
         <div className="flex justify-between items-center p-4 border-b border-[var(--card-bg-hover)]">
           <div className="flex items-center gap-2">
             <span className="text-[var(--text-primary)] font-bold">
-              #{pr.id}
+              #{pr.number}
             </span>
             <h2 className="text-[var(--text-primary)] font-semibold truncate">
               {pr.title || "Update authentication flow"}
@@ -163,11 +194,11 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
         <div className="flex-1 p-4 overflow-y-auto chat-container">
           <div className="mb-4">
             <p className="text-sm text-[var(--text-secondary)] flex items-center gap-2">
-              Created by {pr.author || "johndoe"} on{" "}
+              Created by {pr.user?.login || "johndoe"} on{" "}
               {new Date(pr.createdAt || "2023-05-15").toLocaleDateString()}
-              {pr.url && (
+              {pr.html_url && (
                 <a
-                  href={pr.url}
+                  href={pr.html_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -201,7 +232,7 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
                 >
                   {label}
                 </span>
-              )
+              ),
             )}
             {pr.mergedAt && (
               <span className="px-2 py-1 text-xs rounded-full bg-[var(--card-bg-hover)] text-[var(--text-primary)]">
@@ -218,7 +249,9 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
             <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-1">
               Description
             </h3>
-            <p className="text-[var(--text-primary)]">
+            <p className="text-[var(--text-primary)] whitespace-pre-wrap">
+              {" "}
+              {/* <-- Add whitespace-pre-wrap */}
               {pr.body || "This PR has no description"}
             </p>
           </div>
@@ -286,11 +319,44 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
                       <div
                         className={`px-4 py-2 rounded-lg ${
                           msg.sender === "user"
-                            ? "bg-[var(--button-bg)] text-[var(--text-primary)] rounded-br-none"
+                            ? "bg-[var(--button-bg)] text-black rounded-br-none"
                             : "bg-gray-700 text-[var(--text-primary)] rounded-bl-none"
                         }`}
                       >
-                        <p className="text-sm">{msg.message}</p>
+                        <div className="markdown-container">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({
+                                node,
+                                inline,
+                                className,
+                                children,
+                                ...props
+                              }) {
+                                const match = /language-(\w+)/.exec(
+                                  className || "",
+                                );
+                                return !inline && match ? (
+                                  <SyntaxHighlighter
+                                    style={vscDarkPlus}
+                                    language={match[1]}
+                                    PreTag="div"
+                                    {...props}
+                                  >
+                                    {String(children).replace(/\n$/, "")}
+                                  </SyntaxHighlighter>
+                                ) : (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              },
+                            }}
+                          >
+                            {msg.message}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                       <span className="text-xs text-[var(--text-secondary)] mt-1 block">
                         {msg.timestamp}
@@ -298,6 +364,20 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
                     </div>
                   </motion.div>
                 ))}
+                {isBotTyping && (
+                  <motion.div
+                    variants={messageVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="flex justify-start"
+                  >
+                    <div className="relative max-w-[75%]">
+                      <div className="px-4 py-2 rounded-lg bg-gray-700 text-[var(--text-primary)] rounded-bl-none">
+                        <p className="text-sm italic">AI is typing...</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
             <div ref={chatContainerRef} />
@@ -312,21 +392,24 @@ const PRDetailChatbot = ({ open, onClose, pr }) => {
               className="flex-1 bg-[var(--card-bg-hover)] text-[var(--text-primary)] p-3 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[var(--button-bg)] transition-all"
               placeholder="Chat with AI about this pull request..."
               value={comment}
+              disabled={isBotTyping}
               onChange={(e) => setComment(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === "Enter" && comment.trim()) {
+                if (e.key === "Enter" && !isBotTyping && comment.trim()) {
                   handleSendMessage();
                 }
               }}
             />
             <button
               className={`bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-black px-4 py-2 rounded-lg transition-colors ${
-                !comment.trim() ? "opacity-50 cursor-not-allowed" : ""
+                !comment.trim() || isBotTyping
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
               }`}
               onClick={handleSendMessage}
-              disabled={!comment.trim()}
+              disabled={!comment.trim() || isBotTyping}
             >
-              Send
+              {isBotTyping ? "..." : "Send"}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useRepo } from "../../context/RepoContext";
 import { getRepoIssues } from "../../utils/api";
 import { formatDistanceToNow, subWeeks, subMonths } from "date-fns";
 import { handleApiError } from "../../utils/errorHandler";
+import Loader from "../Loader/Loader";
 
 const Issues = () => {
   const { repoFullName } = useParams();
@@ -103,9 +104,7 @@ const Issues = () => {
   ).length;
 
   if (loading) {
-    return (
-      <div className="text-center text-secondary font-semibold">Loading...</div>
-    );
+    return <Loader />;
   }
 
   if (error) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getRepoPRs, getRepoBranches } from "../../utils/api";
+import { getRepoPRs, getRepoBranches, getPRDetails } from "../../utils/api";
 import { useRepo } from "../../context/RepoContext";
 import Button from "@mui/material/Button";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -9,6 +9,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import "./PRs.css";
 import { handleApiError } from "../../utils/errorHandler";
 import PRDetailChatbot from "../PRDetailChatbot/PRDetailChatbot";
+import Loader from "../Loader/Loader";
+import RateReviewIcon from "@mui/icons-material/RateReview";
+import HourglassTopIcon from "@mui/icons-material/HourglassTop";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const PRs = () => {
   const { repoFullName } = useParams();
@@ -17,12 +21,8 @@ const PRs = () => {
   const repo = repoFullName ? decodeURIComponent(repoFullName) : selectedRepo;
   const [owner, repoName] = repo ? repo.split("/") : ["", ""];
   const [prs, setPrs] = useState({
-    open: [],
     needsYourReview: [],
     waitingForAuthor: [],
-    authorMadeChanges: [],
-    approved: [],
-    closed: [],
     merged: [],
   });
   const [branches, setBranches] = useState([]);
@@ -51,12 +51,8 @@ const PRs = () => {
           selectedBranch || null
         );
         setPrs({
-          open: prResponse.open || [],
           needsYourReview: prResponse.needsYourReview || [],
           waitingForAuthor: prResponse.waitingForAuthor || [],
-          authorMadeChanges: prResponse.authorMadeChanges || [],
-          approved: prResponse.approved || [],
-          closed: prResponse.closed || [],
           merged: prResponse.merged || [],
         });
         if (branches.length === 0) {
@@ -72,7 +68,7 @@ const PRs = () => {
     };
 
     fetchData();
-  }, [owner, repoName, selectedBranch, branches.length]);
+  }, [owner, repoName, selectedBranch]);
 
   const toggleRow = (row) => {
     setExpandedRow((prev) => (prev === row ? null : row));
@@ -83,23 +79,39 @@ const PRs = () => {
     setShowBranchFilter(false);
   };
 
-  const handlePRClick = (pr) => {
-    setSelectedPR(pr);
-    setIsModalOpen(true);
+
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false); // Add a loading state
+
+  const handlePRClick = async (pr) => {
+      setIsFetchingDetails(true);
+      setError(null);
+      try {
+          // Fetch full PR details including body and diff
+          const fullPRData = await getPRDetails(owner, repoName, pr.id);
+          setSelectedPR(fullPRData);
+          setIsModalOpen(true);
+      } catch (err) {
+          setError(handleApiError(err));
+          console.error("Failed to fetch PR details:", err);
+      } finally {
+          setIsFetchingDetails(false);
+      }
   };
 
-  const PRList = ({ prs, title, rowKey }) => {
+  const PRList = ({ prs, title, rowKey, icon, color }) => {
     const isExpanded = expandedRow === rowKey;
 
     return (
       <div className="mb-4 pr-w-full mx-auto">
         <div
-          className="flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 bg-[#17181a] hover:bg-[#1e1f22]"
+          className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all duration-300 bg-[#17181a] hover:bg-[#1e1f22] border-l-4`}
+          style={{ borderColor: color }}
           onClick={() => toggleRow(rowKey)}
         >
-          <h2 className="text-lg font-semibold text-textPrimary">
+          <div className="flex items-center gap-2 text-lg font-semibold text-textPrimary">
+            {icon}
             {prs.length} {title}
-          </h2>
+          </div>
           <div className="flex items-center space-x-2">
             {isExpanded ? (
               <ExpandLessIcon className="text-textSecondary" fontSize="small" />
@@ -109,6 +121,7 @@ const PRs = () => {
             <FilterListIcon className="text-textSecondary" fontSize="small" />
           </div>
         </div>
+
         {isExpanded && (
           <div className="mt-2 pr-animate-dropdown">
             {prs.length === 0 ? (
@@ -121,7 +134,7 @@ const PRs = () => {
                   <li
                     key={pr.id}
                     className="rounded-lg border border-gray-700 bg-card-bg p-4 transition-colors hover:bg-card-bg-hover cursor-pointer"
-                    onClick={() => handlePRClick(pr)}
+                    onClick={() => !isFetchingDetails && handlePRClick(pr)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -220,11 +233,7 @@ const PRs = () => {
         </div>
       </div>
 
-      {loading && (
-        <p className="text-textSecondary text-sm font-semibold">
-          Loading pull requests...
-        </p>
-      )}
+      {loading && <Loader />}
       {error && <p className="text-red-400 text-sm font-semibold">{error}</p>}
 
       {!loading && !error && (
@@ -233,16 +242,22 @@ const PRs = () => {
             prs={prs.needsYourReview}
             title="Needs your review"
             rowKey="needsYourReview"
+            icon={<RateReviewIcon className="text-yellow-400" />}
+            color="#facc15" // Tailwind's yellow-400
           />
           <PRList
             prs={prs.waitingForAuthor}
             title="Waiting for author"
             rowKey="waitingForAuthor"
+            icon={<HourglassTopIcon className="text-blue-400" />}
+            color="#60a5fa" // Tailwind's blue-400
           />
           <PRList
             prs={prs.merged}
             title="Merging and recently merged"
             rowKey="mergingAndMerged"
+            icon={<CheckCircleIcon className="text-green-400" />}
+            color="#34d399" // Tailwind's green-400
           />
         </>
       )}

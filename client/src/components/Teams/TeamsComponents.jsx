@@ -1,15 +1,62 @@
 import { useState, useEffect } from "react";
 import { Eye } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getRepoContributors } from "../../utils/api";
 import RepoMetricsComponent from "../RepoMetrics/RepoMetrics";
+import GradeCircle from "../DeveloperProfile/GradeCircle";
 
 const TeamsComponents = () => {
   const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const navigate = useNavigate();
   const { repoFullName } = useParams();
+  const [searchParams] = useSearchParams();
+
+  const staticDeveloperImpactScore = {
+    data: {
+      score: {
+        grade: "A+",
+        total: 92.5,
+      },
+    },
+  };
+
+  const getGradeColor = (grade) => {
+    if (grade === "A+" || grade === "A") {
+      return {
+        primary: "from-emerald-800 to-teal-900",
+        secondary: "from-emerald-800/20 to-teal-900/20",
+        text: "text-emerald-600",
+        glow: "shadow-emerald-800/50",
+        particles: "#065f46",
+      };
+    } else if (grade === "B+" || grade === "B") {
+      return {
+        primary: "from-blue-800 to-indigo-900",
+        secondary: "from-blue-800/20 to-indigo-900/20",
+        text: "text-blue-600",
+        glow: "shadow-blue-800/50",
+        particles: "#1e3a8a",
+      };
+    } else if (grade === "C+" || grade === "C") {
+      return {
+        primary: "from-amber-800 to-orange-900",
+        secondary: "from-amber-800/20 to-orange-900/20",
+        text: "text-amber-600",
+        glow: "shadow-amber-800/50",
+        particles: "#92400e",
+      };
+    } else {
+      return {
+        primary: "from-red-900 to-rose-900",
+        secondary: "from-red-900/20 to-rose-900/20",
+        text: "text-red-600",
+        glow: "shadow-red-900/50",
+        particles: "#991b1b",
+      };
+    }
+  };
 
   useEffect(() => {
     const fetchContributors = async () => {
@@ -32,7 +79,23 @@ const TeamsComponents = () => {
   }, [repoFullName]);
 
   const handleViewDetails = (contributor) => {
-    console.log("Viewing details for:", contributor.name);
+    if (!repoFullName) return;
+    const [owner, repo] = repoFullName.split("/");
+    navigate(
+      `/user/${owner}/${repo}/${
+        contributor.login || contributor.name
+      }?tab=Profile`
+    );
+  };
+
+  const handleContributorNameClick = (contributor) => {
+    if (!repoFullName) return;
+    const [owner, repo] = repoFullName.split("/");
+    navigate(
+      `/user/${owner}/${repo}/${
+        contributor.login || contributor.name
+      }?tab=Profile`
+    );
   };
 
   if (loading) {
@@ -54,10 +117,63 @@ const TeamsComponents = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="p-4 md:p-6 lg:p-8">
+        {/* Grade Circle and Developer Insights Section */}
+        <div className="card-bg rounded-lg p-4 sm:p-6 hover:border-accent/50 transition-colors min-h-[150px] sm:min-h-[180px] mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+            <div className="flex flex-col items-center sm:items-start gap-4 w-full sm:w-auto">
+              {/* 3D Grade Circle */}
+              <GradeCircle
+                developerImpactScore={staticDeveloperImpactScore}
+                isCelebrating={true}
+              />
+
+              {/* Score Details */}
+              <div className="flex flex-col items-center space-y-2 w-full">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span
+                    className={`text-3xl sm:text-4xl font-bold ${
+                      getGradeColor(staticDeveloperImpactScore.data.score.grade)
+                        .text
+                    }`}
+                  >
+                    {staticDeveloperImpactScore.data.score.total.toFixed(1)}
+                  </span>
+                  <span className="text-xs sm:text-sm text-secondary dark:text-gray-400">
+                    / 100
+                  </span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-bold">
+                  Overall Impact Score
+                </h2>
+              </div>
+            </div>
+
+            {/* Right Column - Developer Insights */}
+            <div className="flex-1 flex flex-col justify-center space-y-3 sm:space-y-4 sm:border-l sm:border-border sm:pl-6 sm:pl-8 mt-4 sm:mt-0">
+              <h3 className="text-lg sm:text-xl font-semibold text-primary dark:text-white">
+                Developer Insights
+              </h3>
+              <p className="text-secondary text-xs sm:text-sm leading-relaxed">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+                enim ad minim veniam, quis nostrud exercitation ullamco laboris
+                nisi ut aliquip ex ea commodo consequat.
+              </p>
+              <p className="text-secondary text-xs sm:text-sm leading-relaxed">
+                Duis aute irure dolor in reprehenderit in voluptate velit esse
+                cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
+                cupidatat non proident, sunt in culpa qui officia deserunt
+                mollit anim id est laborum.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Repository Analytics Section */}
         <RepoMetricsComponent />
 
-        {/* Repository Contributors Section with margin top */}
+        {/* Repository Contributors Section */}
         <div className="mt-8 md:mt-12 lg:mt-16">
           <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-6 md:mb-8 text-primary border-t border-border pt-6">
             Repository Contributors
@@ -84,12 +200,18 @@ const TeamsComponents = () => {
                   {contributors.map((contributor, index) => (
                     <tr
                       key={index}
-                      className="border-b border-border hover:bg-accent transition-colors duration-150"
+                      className="border-b border-border transition-colors duration-150"
                     >
                       <td className="p-3 lg:p-4 text-primary text-sm lg:text-base">
-                        <span className="font-semibold">
+                        <button
+                          onClick={() =>
+                            handleContributorNameClick(contributor)
+                          }
+                          className="font-semibold text-primary text-left w-full transition-all duration-200 ease-in-out 
+                             hover:text-accent hover:underline hover:scale-[1.02]"
+                        >
                           {contributor.name}
-                        </span>
+                        </button>
                       </td>
                       <td className="p-3 lg:p-4 text-primary text-sm lg:text-base">
                         <span className="font-semibold">
@@ -124,7 +246,11 @@ const TeamsComponents = () => {
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-primary font-semibold text-base truncate">
+                    <h4
+                      className="text-primary font-semibold text-base truncate cursor-pointer transition-all duration-200 
+                             hover:text-accent hover:underline hover:scale-105"
+                      onClick={() => handleContributorNameClick(contributor)}
+                    >
                       {contributor.name}
                     </h4>
                   </div>

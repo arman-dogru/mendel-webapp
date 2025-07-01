@@ -236,12 +236,34 @@ const getRepoPR = async (req, res, next) => {
       userAccessToken,
       prParams
     );
+    const hasAnyComments = async (prNumber) => {
+      try {
+        const issueComments = await githubApiRequestUser(
+          `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+          userAccessToken
+        );
+
+        const reviewComments = await githubApiRequestUser(
+          `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/comments`,
+          userAccessToken
+        );
+
+        return issueComments.length > 0 || reviewComments.length > 0;
+      } catch (error) {
+        console.warn(
+          `Failed to fetch comments for PR #${prNumber}:`,
+          error.message
+        );
+        return false;
+      }
+    };
 
     const prs = prData.map((pr, index) => ({
       id: pr.number,
       title: pr.title,
       createdAt: pr.created_at,
       author: pr.user?.login || "Unknown",
+      body: pr.body,
       status: pr.state,
       labels: pr.labels.map((label) => label.name),
       comments: pr.comments,
@@ -256,34 +278,26 @@ const getRepoPR = async (req, res, next) => {
     }));
 
     const categorizedPRs = {
-      open: [],
-      needsYourReview: [],
-      waitingForAuthor: [],
-      closed: [],
       merged: [],
+      waitingForAuthor: [],
+      needsYourReview: [],
     };
-
-    prs.forEach((pr) => {
+    for (const pr of prs) {
       const isMerged = !!pr.mergedAt;
       const isOpen = pr.status === "open";
-      const isAuthor = pr.author === currentUser;
 
       if (isOpen) {
-        categorizedPRs.open.push(pr);
-        // Add all open PRs to needsYourReview
-        categorizedPRs.needsYourReview.push(pr);
+        const hasComments = await hasAnyComments(pr.id);
 
-        if (isAuthor && (pr.comments > 0 || pr.review_comments > 0)) {
+        if (hasComments) {
           categorizedPRs.waitingForAuthor.push(pr);
+        } else {
+          categorizedPRs.needsYourReview.push(pr);
         }
       } else {
-        if (isMerged) {
-          categorizedPRs.merged.push(pr);
-        } else {
-          categorizedPRs.closed.push(pr);
-        }
+        categorizedPRs.merged.push(pr);
       }
-    });
+    }
 
     res.json(categorizedPRs);
   } catch (error) {
@@ -387,88 +401,146 @@ const getRepoContributors = async (req, res, next) => {
   }
 };
 
-// ** RESOLVED CONFLICT: Kept functions and helpers from 'main' branch **
-// --- Helper Functions for Metrics ---
-const formatDateForGrouping = (dateString) => {
-  const date = new Date(dateString);
-  const year = date.getUTCFullYear();
-  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
-  const day = date.getUTCDate().toString().padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const groupByWeek = (prsData, branchEvents) => {
-  const groupedData = {};
-  const getWeekStartDate = (date) => {
-    const dayOfWeek = date.getUTCDay();
-    const diff = date.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const weekStart = new Date(
-      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff)
-    );
-    return weekStart;
-  };
-
-  prsData.forEach((item) => {
-    const date = new Date(item.date);
-    const weekStart = getWeekStartDate(date);
-    const weekKey = weekStart.toISOString().split("T")[0];
-
-    if (!groupedData[weekKey]) {
-      groupedData[weekKey] = {
-        date: weekKey,
-        totalPRsMerged: 0,
-        branchesCreated: 0,
-        timeToMergeTotal: 0,
-        mergeCount: 0,
-      };
-    }
-
-    groupedData[weekKey].totalPRsMerged += 1;
-    if (item.timeToMerge !== null) {
-      groupedData[weekKey].timeToMergeTotal += item.timeToMerge;
-      groupedData[weekKey].mergeCount += 1;
-    }
-  });
-
-  branchEvents.forEach((event) => {
-    const date = new Date(event.created_at);
-    const weekStart = getWeekStartDate(date);
-    const weekKey = weekStart.toISOString().split("T")[0];
-
-    if (!groupedData[weekKey]) {
-      groupedData[weekKey] = {
-        date: weekKey,
-        totalPRsMerged: 0,
-        branchesCreated: 0,
-        timeToMergeTotal: 0,
-        mergeCount: 0,
-      };
-    }
-    groupedData[weekKey].branchesCreated += 1;
-  });
-
-  return Object.values(groupedData).map((week) => ({
-    ...week,
-    avgTimeToMerge:
-      week.mergeCount > 0
-        ? parseFloat((week.timeToMergeTotal / week.mergeCount).toFixed(1))
-        : 0,
-    prCount: week.totalPRsMerged,
-  }));
-};
-
-const getDaysDifference = (dateString1, dateString2) => {
-  if (!dateString1 || !dateString2) return null; // Return null if dates are invalid
+const getRepoMetricsHelper = async (owner, repo, userAccessToken) => {
   try {
-    const date1 = new Date(dateString1);
-    const date2 = new Date(dateString2);
-    const diffTime = Math.abs(date2 - date1);
-    if (isNaN(diffTime)) return null; // Handle invalid date strings
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Difference in days
-  } catch (e) {
-    console.error("Error calculating date difference:", e);
-    return null;
+    let allPRs = [];
+    let page = 1;
+    while (true) {
+      const prs = await githubApiRequestUser(
+        `https://api.github.com/repos/${owner}/${repo}/pulls`,
+        userAccessToken,
+        { state: "all", per_page: 100, page }
+      );
+      allPRs = allPRs.concat(prs);
+      if (prs.length < 100) break;
+      page++;
+    }
+    const mergedPRs = allPRs.filter((pr) => pr.merged_at);
+    const openPRs = allPRs.filter((pr) => pr.state === "open");
+    let overallAvgTimeToMerge = 0;
+    if (mergedPRs.length > 0) {
+      const totalMergeTime = mergedPRs.reduce((sum, pr) => {
+        const createdAt = new Date(pr.created_at);
+        const mergedAt = new Date(pr.merged_at);
+        const timeDiff = (mergedAt - createdAt) / (1000 * 60 * 60);
+        return sum + timeDiff;
+      }, 0);
+      overallAvgTimeToMerge = Math.round(totalMergeTime / mergedPRs.length);
+    }
+
+    let totalCommentResponseTime = 0;
+    let prWithCommentsCount = 0;
+    const now = new Date();
+
+    for (const pr of allPRs) {
+      try {
+        const comments = await githubApiRequestUser(
+          `https://api.github.com/repos/${owner}/${repo}/issues/${pr.number}/comments`,
+          userAccessToken
+        );
+
+        const prCreatedAt = new Date(pr.created_at);
+        const prAuthor = pr.user.login;
+
+        const nonAuthorComments = comments.filter(
+          (comment) => comment.user.login !== prAuthor
+        );
+
+        if (nonAuthorComments.length > 0) {
+          const firstCommentAt = new Date(nonAuthorComments[0].created_at);
+          const timeDiff = (firstCommentAt - prCreatedAt) / (1000 * 60 * 60);
+          totalCommentResponseTime += timeDiff;
+          prWithCommentsCount++;
+        } else {
+          const timeDiff = (now - prCreatedAt) / (1000 * 60 * 60);
+          totalCommentResponseTime += timeDiff;
+          prWithCommentsCount++;
+        }
+      } catch (error) {
+        console.warn(
+          `[HELPER] Failed to fetch comments for PR #${pr.number}:`,
+          error.message
+        );
+      }
+    }
+
+    const avgTimeToAddressPRComments =
+      prWithCommentsCount > 0
+        ? Math.round(totalCommentResponseTime / prWithCommentsCount)
+        : 0;
+
+    const formatTime = (hours) => {
+      const days = Math.floor(hours / 24);
+      const remainingHours = Math.floor(hours % 24);
+      const minutes = Math.floor((hours % 1) * 60);
+      return `${days.toString().padStart(2, "0")}days/${remainingHours
+        .toString()
+        .padStart(2, "0")}hr/${minutes.toString().padStart(2, "0")}min`;
+    };
+
+    const helperResult = {
+      averageTimeToAddressPRComments: formatTime(avgTimeToAddressPRComments),
+      overallAvgTimeToMerge,
+      totalOpenPRs: openPRs.length,
+      totalPRsMerged: mergedPRs.length,
+    };
+    return helperResult;
+  } catch (error) {
+    console.error(
+      `[HELPER ERROR] Error in helper function for ${owner}/${repo}:`,
+      error.message
+    );
+    throw error;
   }
+};
+
+// server/controllers/repoController.js (at the end of the file)
+
+// CORRECTED FUNCTION: getPRDetails
+const getPRDetails = async (req, res, next) => {
+    const { owner, repo, prNumber } = req.params;
+    const userAccessToken = req.accessToken;
+
+    if (!userAccessToken) {
+        return next(new AppError("Authentication token missing.", 401));
+    }
+
+    try {
+        // 1. Get standard PR data (which includes the body) - this part is fine
+        const prData = await githubApiRequestUser(
+            `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
+            userAccessToken
+        );
+
+        // 2. Get the PR diff using a direct axios call with the correct header
+        const diffResponse = await axios.get(
+            `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${userAccessToken}`,
+                    Accept: 'application/vnd.github.v3.diff' // Use the specific 'diff' media type
+                }
+            }
+        );
+        const diff = diffResponse.data;
+
+        // 3. Combine and send response
+        const prDetails = {
+            ...prData, // All original PR data from the first call
+            diff: diff  // Add the diff from the second call
+        };
+
+        res.json(prDetails);
+
+    } catch (error) {
+        console.error(`Error fetching details for PR #${prNumber}:`, error.message);
+        // Pass the error to the global error handler
+        if (error.isAxiosError && error.response) {
+            next(new AppError(error.response.data.message || 'GitHub API error', error.response.status));
+        } else {
+            next(error);
+        }
+    }
 };
 
 const getRepoMetrics = async (req, res, next) => {
@@ -478,185 +550,170 @@ const getRepoMetrics = async (req, res, next) => {
 
   if (!userAccessToken) {
     console.error(
-      `getRepoMetrics: Missing userAccessToken for ${owner}/${repo}.`
+      `[MAIN] getRepoMetrics: Missing userAccessToken for ${owner}/${repo}.`
     );
     return next(new AppError("Authentication token missing.", 401));
   }
 
   try {
-    const startDate = new Date();
-    let timeframeMonths = 3;
-    if (timeframe === "1month") {
-      startDate.setMonth(startDate.getMonth() - 1);
-      timeframeMonths = 1;
-    } else if (timeframe === "6months") {
-      startDate.setMonth(startDate.getMonth() - 6);
-      timeframeMonths = 6;
-    } else {
-      startDate.setMonth(startDate.getMonth() - 3);
-    }
-    const startDateString = startDate.toISOString();
-    let prsData = [];
-    let prPage = 1;
+    const helperMetrics = await getRepoMetricsHelper(
+      owner,
+      repo,
+      userAccessToken
+    );
+    const repoInfo = await githubApiRequestUser(
+      `https://api.github.com/repos/${owner}/${repo}`,
+      userAccessToken
+    );
+    const now = new Date();
+    const timeframeMonths =
+      timeframe === "1year" ? 12 : timeframe === "6months" ? 6 : 3;
+    const startDate = new Date(now);
+    startDate.setMonth(now.getMonth() - timeframeMonths);
+
+    let allPRs = [];
+    let page = 1;
     while (true) {
-      const data = await githubApiRequestUser(
+      const prs = await githubApiRequestUser(
         `https://api.github.com/repos/${owner}/${repo}/pulls`,
         userAccessToken,
-        {
-          state: "closed",
-          sort: "updated",
-          direction: "desc",
-          per_page: 100,
-          page: prPage,
-        }
+        { state: "all", per_page: 100, page }
       );
-      prsData = prsData.concat(data);
-      if (data.length < 100) break;
-      prPage++;
+      allPRs = allPRs.concat(prs);
+      if (prs.length < 100) break;
+      page++;
     }
 
-    const processedPRs = prsData
-      .filter((pr) => pr.merged_at && new Date(pr.merged_at) >= startDate)
-      .map((pr) => ({
-        date: pr.merged_at,
-        timeToMerge: getDaysDifference(pr.created_at, pr.merged_at),
-      }))
-      .filter((pr) => pr.timeToMerge !== null);
-    let branchesData = [];
-    let branchPage = 1;
+    let allBranches = [];
+    page = 1;
     while (true) {
-      const data = await githubApiRequestUser(
+      const branches = await githubApiRequestUser(
         `https://api.github.com/repos/${owner}/${repo}/branches`,
         userAccessToken,
-        { per_page: 100, page: branchPage }
+        { per_page: 100, page }
       );
-      branchesData = branchesData.concat(data);
-      if (data.length < 100) break;
-      branchPage++;
+      allBranches = allBranches.concat(branches);
+      if (branches.length < 100) break;
+      page++;
     }
-    let eventsData = [];
-    let eventPage = 1;
-    while (true) {
-      const data = await githubApiRequestUser(
-        `https://api.github.com/repos/${owner}/${repo}/events`,
-        userAccessToken,
-        { per_page: 100, page: eventPage }
+    const filteredPRs = allPRs.filter((pr) => {
+      const prCreatedDate = new Date(pr.created_at);
+      const prMergedDate = pr.merged_at ? new Date(pr.merged_at) : null;
+      return (
+        prCreatedDate >= startDate ||
+        (prMergedDate && prMergedDate >= startDate)
       );
-      eventsData = eventsData.concat(data);
-      if (data.length < 100) break;
-      eventPage++;
+    });
+    const mergedPRs = filteredPRs.filter((pr) => pr.merged_at);
+    const openPRs = filteredPRs.filter((pr) => pr.state === "open");
+    const branchCreationsByDate = {};
+    for (const branch of allBranches) {
+      try {
+        const commit = await githubApiRequestUser(
+          `https://api.github.com/repos/${owner}/${repo}/commits/${branch.commit.sha}`,
+          userAccessToken
+        );
+        const commitDate = commit.commit.author.date.split("T")[0];
+        const commitDateTime = new Date(commit.commit.author.date);
+        if (commitDateTime >= startDate) {
+          branchCreationsByDate[commitDate] =
+            (branchCreationsByDate[commitDate] || 0) + 1;
+        }
+      } catch (error) {
+        console.warn(
+          `[MAIN] Failed to fetch commit for branch ${branch.name}:`,
+          error.message
+        );
+      }
     }
 
-    const branchEvents = eventsData.filter(
-      (event) =>
-        event.type === "CreateEvent" &&
-        event.payload.ref_type === "branch" &&
-        new Date(event.created_at) >= startDate
+    const totalPRs = filteredPRs.length;
+    const totalMergedPRs = mergedPRs.length;
+    const totalOpenPRs = openPRs.length;
+    const totalBranchesCreated = Object.values(branchCreationsByDate).reduce(
+      (sum, count) => sum + count,
+      0
     );
-    const weeklyData = [];
-    const currentDate = new Date();
-    let weekDate = new Date(startDate);
-    while (weekDate <= currentDate) {
-      const weekStart = new Date(weekDate);
-      const dayOfWeek = weekStart.getUTCDay();
-      const diff =
-        weekStart.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-      weekStart.setUTCDate(diff);
-      weekStart.setUTCHours(0, 0, 0, 0);
-      const weekKey = weekStart.toISOString().split("T")[0];
-      weeklyData.push({
-        date: weekKey,
-        totalPRsMerged: 0,
-        branchesCreated: 0,
-        timeToMergeTotal: 0,
-        mergeCount: 0,
-      });
-      weekDate.setDate(weekDate.getDate() + 7);
+    let overallAvgTimeToMerge = 0;
+    if (mergedPRs.length > 0) {
+      const totalMergeTime = mergedPRs.reduce((sum, pr) => {
+        const createdAt = new Date(pr.created_at);
+        const mergedAt = new Date(pr.merged_at);
+        const timeDiff = (mergedAt - createdAt) / (1000 * 60 * 60);
+        return sum + timeDiff;
+      }, 0);
+      overallAvgTimeToMerge = Math.round(totalMergeTime / mergedPRs.length);
     }
+    const prMergeData = [];
+    const prCreationData = [];
+    const branchCreationData = [];
+    const timeToMergeData = [];
 
-    processedPRs.forEach((item) => {
-      const date = new Date(item.date);
-      const weekStart = new Date(date);
-      const dayOfWeek = weekStart.getUTCDay();
-      const diff =
-        weekStart.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-      weekStart.setUTCDate(diff);
-      weekStart.setUTCHours(0, 0, 0, 0);
-      const weekKey = weekStart.toISOString().split("T")[0];
-      const week = weeklyData.find((w) => w.date === weekKey);
-      if (week) {
-        week.totalPRsMerged += 1;
-        week.timeToMergeTotal += item.timeToMerge;
-        week.mergeCount += 1;
+    const mergedPRsByDate = {};
+    mergedPRs.forEach((pr) => {
+      const mergeDate = pr.merged_at.split("T")[0];
+      mergedPRsByDate[mergeDate] = (mergedPRsByDate[mergeDate] || 0) + 1;
+    });
+
+    const createdPRsByDate = {};
+    filteredPRs.forEach((pr) => {
+      const createDate = pr.created_at.split("T")[0];
+      createdPRsByDate[createDate] = (createdPRsByDate[createDate] || 0) + 1;
+    });
+
+    Object.entries(mergedPRsByDate).forEach(([date, value]) => {
+      prMergeData.push({ date, value });
+    });
+
+    Object.entries(createdPRsByDate).forEach(([date, value]) => {
+      prCreationData.push({ date, value });
+    });
+
+    Object.entries(branchCreationsByDate).forEach(([date, value]) => {
+      branchCreationData.push({ date, value });
+    });
+
+    mergedPRs.forEach((pr) => {
+      if (pr.merged_at) {
+        timeToMergeData.push({
+          branchName: pr.head.ref,
+          date: pr.merged_at.split("T")[0],
+        });
       }
     });
 
-    branchEvents.forEach((event) => {
-      const date = new Date(event.created_at);
-      const weekStart = new Date(date);
-      const dayOfWeek = weekStart.getUTCDay();
-      const diff =
-        weekStart.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-      weekStart.setUTCDate(diff);
-      weekStart.setUTCHours(0, 0, 0, 0);
-      const weekKey = weekStart.toISOString().split("T")[0];
-      const week = weeklyData.find((w) => w.date === weekKey);
-      if (week) {
-        week.branchesCreated += 1;
+    [prMergeData, prCreationData, branchCreationData, timeToMergeData].forEach(
+      (arr) => {
+        arr.sort((a, b) => new Date(a.date) - new Date(b.date));
       }
-    });
-
-    const formattedWeeklyData = weeklyData.map((week) => ({
-      date: week.date,
-      totalPRsMerged: week.totalPRsMerged,
-      branchesCreated: week.branchesCreated,
-      avgTimeToMerge:
-        week.mergeCount > 0
-          ? parseFloat((week.timeToMergeTotal / week.mergeCount).toFixed(1))
-          : 0,
-      prCount: week.totalPRsMerged,
-    }));
-
-    formattedWeeklyData.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    const totalPRsMerged = processedPRs.length;
-    const totalBranchesCreated = branchesData.length;
-    const overallAvgTimeToMerge =
-      processedPRs.length > 0
-        ? parseFloat(
-            (
-              processedPRs.reduce((sum, pr) => sum + pr.timeToMerge, 0) /
-              processedPRs.length
-            ).toFixed(1)
-          )
-        : 0;
-
+    );
     const response = {
-      prMergeData: formattedWeeklyData.map((w) => ({
-        date: w.date,
-        value: w.totalPRsMerged,
-      })),
-      branchCreationData: formattedWeeklyData.map((w) => ({
-        date: w.date,
-        value: w.branchesCreated,
-      })),
-      timeToMergeData: formattedWeeklyData.map((w) => ({
-        date: w.date,
-        value: w.avgTimeToMerge,
-      })),
+      prMergeData,
+      prCreationData,
+      branchCreationData,
+      timeToMergeData,
       totalStats: {
-        totalPRsMerged,
+        totalPRs,
+        totalPRsMerged: totalMergedPRs,
+        totalOpenPRs,
         totalBranchesCreated,
-        overallAvgTimeToMerge,
         timeframeMonths,
-        startDate: startDateString,
+        startDate: repoInfo.created_at,
+        overallAvgTimeToMerge,
+      },
+      allTimeMetrics: {
+        averageTimeToAddressPRComments:
+          helperMetrics.averageTimeToAddressPRComments,
+        overallAvgTimeToMerge: helperMetrics.overallAvgTimeToMerge,
+        totalOpenPRs: helperMetrics.totalOpenPRs,
+        totalPRsMerged: helperMetrics.totalPRsMerged,
       },
     };
 
     res.json(response);
   } catch (error) {
     console.error(
-      `getRepoMetrics: Error fetching metrics for ${owner}/${repo}:`,
+      `[MAIN ERROR] getRepoMetrics: Error fetching metrics for ${owner}/${repo}:`,
       error.message
     );
     next(error);
@@ -714,4 +771,5 @@ module.exports = {
   getRepoContributors,
   getRepoMetrics,
   getPRComments,
+  getPRDetails,
 };

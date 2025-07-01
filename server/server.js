@@ -12,16 +12,18 @@ const {
   PORT,
   GITHUB_APP_ID, // Check if App ID is loaded
   GITHUB_PRIVATE_KEY, // Check if Private Key is loaded
-  GITHUB_WEBHOOK_SECRET // Check if Webhook Secret is loaded
+  GITHUB_WEBHOOK_SECRET, // Check if Webhook Secret is loaded
 } = require("./config/env");
 
 // --- Route Imports ---
 const authRoutes = require("./routes/authRoutes");
 const repoRoutes = require("./routes/repoRoutes");
 const scanRoutes = require("./routes/scanRoutes");
-const webhookRoutes = require("./routes/webhookRoutes"); // Import webhook routes
-// Import other routes (dashboard, team) if they exist
 
+const webhookRoutes = require("./routes/webhookRoutes"); // Import webhook routes
+const getPersonalContributorMetrics = require("./routes/userContributorRouter");
+const chatRoutes = require("./routes/chatRoutes");
+const devImpactRoutes = require("./routes/devImpactScoreRoutes");
 // --- Initial Checks ---
 console.log("--- Environment Configuration ---");
 console.log(`Frontend URL: ${FRONTEND_URL}`);
@@ -32,14 +34,18 @@ console.log(`GitHub Private Key Loaded: ${!!GITHUB_PRIVATE_KEY}`);
 console.log(`GitHub Webhook Secret Loaded: ${!!GITHUB_WEBHOOK_SECRET}`);
 console.log("------------------------------");
 
-if (!SESSION_SECRET || !FRONTEND_URL || !PORT ) {
-    console.error("FATAL ERROR: Missing essential environment variables (SESSION_SECRET, FRONTEND_URL, PORT).");
-    process.exit(1);
+if (!SESSION_SECRET || !FRONTEND_URL || !PORT) {
+  console.error(
+    "FATAL ERROR: Missing essential environment variables (SESSION_SECRET, FRONTEND_URL, PORT)."
+  );
+  process.exit(1);
 }
 // Add checks for App ID/Key/Secret if they are absolutely critical for startup
 if (!GITHUB_APP_ID || !GITHUB_PRIVATE_KEY || !GITHUB_WEBHOOK_SECRET) {
-     console.warn("WARNING: GitHub App/Webhook environment variables (GITHUB_APP_ID, GITHUB_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET) are missing. Webhook features may fail.");
-     // Decide if this should be a fatal error: process.exit(1);
+  console.warn(
+    "WARNING: GitHub App/Webhook environment variables (GITHUB_APP_ID, GITHUB_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET) are missing. Webhook features may fail."
+  );
+  // Decide if this should be a fatal error: process.exit(1);
 }
 
 const app = express();
@@ -57,31 +63,38 @@ app.use(
 
 // --- Webhook Route Specific Middleware (BEFORE global JSON parser) ---
 // Apply RAW body parser ONLY for the webhook route path
-app.use('/api/webhook/github', express.raw({ type: 'application/json', limit: '10mb' }), (req, res, next) => {
+app.use(
+  "/api/webhook/github",
+  express.raw({ type: "application/json", limit: "10mb" }),
+  (req, res, next) => {
     // Attach the raw buffer to req.rawBody for the signature verification middleware
     // express.raw places the buffer into req.body when the type matches
     if (Buffer.isBuffer(req.body)) {
-        req.rawBody = req.body;
-         // console.log('Raw body buffer attached for webhook.'); // Optional debug log
+      req.rawBody = req.body;
+      // console.log('Raw body buffer attached for webhook.'); // Optional debug log
     } else {
-        // This case shouldn't typically happen if GitHub sends correct content-type
-        // but good to handle defensively.
-        console.error('Webhook Error: express.raw() did not yield a buffer. Body type:', typeof req.body);
-        // Stop processing if the raw body isn't available
-        return next(new AppError("Failed to get raw body for webhook signature.", 500));
+      // This case shouldn't typically happen if GitHub sends correct content-type
+      // but good to handle defensively.
+      console.error(
+        "Webhook Error: express.raw() did not yield a buffer. Body type:",
+        typeof req.body
+      );
+      // Stop processing if the raw body isn't available
+      return next(
+        new AppError("Failed to get raw body for webhook signature.", 500)
+      );
     }
     next();
-});
+  }
+);
 // Mount the webhook router AFTER the raw parser for its specific path
 // It will now have access to req.rawBody
 app.use("/api/webhook", webhookRoutes);
 
-
 // --- Global JSON and URLencoded parsers (AFTER webhook route has been handled) ---
 // These will apply to all subsequent routes like /api/auth, /api/repo, etc.
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // --- Session Management (AFTER body parsers, BEFORE routes using sessions) ---
 app.use(
@@ -93,7 +106,7 @@ app.use(
       secure: process.env.NODE_ENV === "production", // Use secure cookies in production
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax', // Adjust SameSite as needed
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Adjust SameSite as needed
     },
     // Consider using connect-mongo for session storage in production
   })
@@ -106,11 +119,13 @@ app.use(
 
 // --- Other API Routes (These will use the global JSON parser) ---
 app.use("/api/auth", authRoutes);
-app.use("/api/repo", repoRoutes); // Will have req.body parsed as JSON
-app.use("/api/scan", scanRoutes); // Will have req.body parsed as JSON
+app.use("/api/repo", repoRoutes);
+app.use("/api/scan", scanRoutes);
+app.use("/api/UserContribution", getPersonalContributorMetrics);
+app.use("/api/chat", chatRoutes);
+app.use("/api/dev-impact", devImpactRoutes);
 // app.use('/api/dashboard', dashboardRoutes);
 // app.use('/api/team', teamRoutes);
-
 
 // --- Health Check Endpoint ---
 app.get("/health", (req, res) => {

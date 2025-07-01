@@ -87,3 +87,106 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* --- ADDED: Markdown Content Styling --- */
+.markdown-container {
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.5;
+  color: inherit;
+  word-wrap: break-word;
+}
+
+.markdown-container > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-container > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-container p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-container ul,
+.markdown-container ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  list-style-position: outside;
+}
+
+.markdown-container ul {
+  list-style-type: disc;
+}
+
+.markdown-container ol {
+  list-style-type: decimal;
+}
+
+.markdown-container li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-container a {
+  color: #93c5fd; /* A nice blue for links */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+.markdown-container a:hover {
+  text-decoration: none;
+}
+
+.markdown-container code {
+  background-color: rgba(200, 200, 220, 0.15); /* Slightly lighter for inline code */
+  padding: 0.125rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.markdown-container pre {
+  margin: 0 0 1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden; /* Important for border-radius on child */
+  background-color: #2d2d2d; /* A default background for the container */
+}
+
+/* This targets the div created by react-syntax-highlighter */
+.markdown-container pre > div {
+  padding: 0.75rem !important;
+  margin: 0 !important;
+  background-color: transparent !important; /* Let the highlighter style take over text color etc. */
+  font-size: 0.85rem !important;
+}
+
+.markdown-container blockquote {
+  border-left: 4px solid var(--text-secondary);
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.markdown-container hr {
+  border-color: var(--border);
+  margin: 1.5rem 0;
+}
+
+.markdown-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.markdown-container th,
+.markdown-container td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.markdown-container th {
+  background-color: var(--accent);
+}

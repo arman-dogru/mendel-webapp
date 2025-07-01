@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import { RepoProvider } from "./context/RepoContext";
 
 function AppContent() {
@@ -24,6 +25,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user/:owner/:repo/:contributor"
+            element={
+              <ProtectedRoute>
+                <UserProfilePage />
               </ProtectedRoute>
             }
           />
